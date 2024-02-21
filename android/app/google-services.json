@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "505169481131",
+    "project_id": "fir-db172",
+    "storage_bucket": "fir-db172.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:505169481131:android:ae4608fc0197713a96d6ee",
+        "android_client_info": {
+          "package_name": "com.example.demo_agora_ui_kit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUdOBPN0MBcy06I-pMgsrXuooj5YKtE98"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
