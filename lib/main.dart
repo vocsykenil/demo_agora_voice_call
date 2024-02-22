@@ -1,10 +1,9 @@
 // Import the generated file
 
 import 'package:agora_uikit/agora_uikit.dart';
-import 'package:demo_agora_ui_kit/voiceCall/app_router.dart';
 import 'package:demo_agora_ui_kit/voiceCall/calling_page.dart';
-import 'package:demo_agora_ui_kit/voiceCall/home_page.dart';
-import 'package:demo_agora_ui_kit/voiceCall/navigation_service.dart';
+import 'package:demo_agora_ui_kit/home_page.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -15,23 +14,29 @@ import 'package:flutter_callkit_incoming/entities/ios_params.dart';
 import 'package:flutter_callkit_incoming/entities/notification_params.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 import 'package:uuid/uuid.dart';
 
 import 'firebase_options.dart';
+import 'loginScreen.dart';
 
 bool backgroundMessageHandled = false;
+final box = GetStorage();
 
+String channelName = '';
+
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
-  await Firebase.initializeApp(
-      options: DefaultFirebaseOptions
-          .currentPlatform);
-  showCallkitIncoming(const Uuid().v4(),message);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  channelName = message.data['channelName'];
+  showCallkitIncoming(const Uuid().v4(), message);
 }
 
-
-Future<void> showCallkitIncoming(String uuid,RemoteMessage message) async {
+Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
+  print('message data ===> ${message.data}');
+  print('message data type ===> ${message.data.runtimeType}');
   final params = CallKitParams(
     id: message.data['id'],
     nameCaller: message.data['senderName'],
@@ -48,7 +53,10 @@ Future<void> showCallkitIncoming(String uuid,RemoteMessage message) async {
       subtitle: 'Missed call',
       callbackText: 'Call back',
     ),
-    extra: <String, dynamic>{'UserId': message.data['UserId'],"senderId":message.data['senderId'],},
+    extra: <String, dynamic>{
+      'UserId': message.data['UserId'],
+      "senderId": message.data['senderId'],
+    },
     headers: <String, dynamic>{'apiKey': 'Abc@123!', 'platform': 'flutter'},
     android: const AndroidParams(
       isCustomNotification: true,
@@ -79,8 +87,11 @@ Future<void> showCallkitIncoming(String uuid,RemoteMessage message) async {
   await FlutterCallkitIncoming.showCallkitIncoming(params);
 }
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await GetStorage.init();
   runApp(MyApp());
 }
 
@@ -102,12 +113,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _uuid = const Uuid();
     initFirebase();
+
     checkAndNavigationCallingPage();
   }
+
   Future<void> checkAndNavigationCallingPage() async {
     var currentCall = await getCurrentCall();
     if (currentCall != null) {
-     Get.to(const CallScreen());
+      Get.to(() => CallScreen(
+            channelName: channelName,
+          ));
     }
   }
 
@@ -132,9 +147,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> initFirebase() async {
-    await Permission.notification.isDenied?Permission.notification.request():null;
-    await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform);
+    await Permission.notification.isDenied
+        ? Permission.notification.request()
+        : null;
+
     await FirebaseMessaging.instance
         .setForegroundNotificationPresentationOptions(
       alert: false,
@@ -142,15 +158,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       sound: false,
     );
     _firebaseMessaging = FirebaseMessaging.instance;
-      FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler);
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print(
           'Message title: ${message.notification?.title}, body: ${message.notification?.body}, data: ${message.data}');
       _currentUuid = _uuid.v4();
-      showCallkitIncoming(_currentUuid!,message);
+      channelName = message.data['channelName'];
+      showCallkitIncoming(_currentUuid!, message);
     });
     _firebaseMessaging.getToken().then((token) {
+      box.write('token', token);
+
       print('Device Token FCM: $token');
     });
   }
@@ -158,13 +176,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      // home: const CallScreen(),
-      home: const HomePage(),
+      home: box.read('isLogin') != null && box.read('isLogin') == true
+          ? const HomePage()
+          : LoginScreen(),
       theme: ThemeData.light(),
-      navigatorKey: NavigationService.instance.navigationKey,
-      navigatorObservers: <NavigatorObserver>[
-        NavigationService.instance.routeObserver
-      ],
     );
   }
 

@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:agora_uikit/agora_uikit.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as https;
+
 
 String appID = '7a16834d47be4e0da4b29493f2ed89b2';
-String token =
-    '007eJxTYFilVTXf9ediw6259s7sug1PD4ZX3tQWeu5uaf3q5KESEREFBvNEQzMLY5MUE/OkVJNUg5REkyQjSxNL4zSj1BQLyyQja+8rqQ2BjAzL6ipZGBkgEMRnYyhKzSvNTmRgAAA4NR80';
+String appCertificate = '058aed4edb5642699c16911982c343c7';
+
 
 class VideoCallPage extends StatefulWidget {
   final String channelName;
@@ -77,7 +79,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
     await _engine.startPreview();
 
     await _engine.joinChannel(
-      token: token,
+      token: '',
       channelId: widget.channelName,
       uid: 0,
       options: const ChannelMediaOptions(),
@@ -236,3 +238,26 @@ class _VideoCallPageState extends State<VideoCallPage> {
   }
 }
 
+Future<String> generateToken(String channelName)async{
+  String token = '';
+  String uri = 'https://agora-token-generator-demo.vercel.app/api/main?type=rtc';
+  var body = {
+    "appId": "7a16834d47be4e0da4b29493f2ed89b2",
+    "certificate": "058aed4edb5642699c16911982c343c7",
+    "channel": channelName,
+    "uid": "0",
+    "role": "publisher",
+    "expire": 3600
+  };
+ var headers = {
+    "Content-Type" : "application/json"
+};
+
+
+
+  final response = await https.post(Uri.parse(uri),body: body,headers: headers);
+  if(response.body.isNotEmpty){
+    print('body =========> ${response.body}');
+  }
+  return token;
+}

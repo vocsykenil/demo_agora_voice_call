@@ -280,38 +280,38 @@
 // }
 
 import 'dart:async';
-import 'package:dio/dio.dart';
+import 'package:demo_agora_ui_kit/vedio_call/vedio_call.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 
-String appID = '7a16834d47be4e0da4b29493f2ed89b2';
 
 class CallScreen extends StatefulWidget {
+  final String channelName;
+
   const CallScreen({
     super.key,
+    required this.channelName,
   });
 
   @override
   State<CallScreen> createState() => _CallScreenState();
 }
 
-class _CallScreenState extends State<CallScreen> {
-  // int uid = 0; // uid of the local user
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>(); // Global key to access the scaffold
 
+showMessage(String message) {
+  scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+    content: Text(message),
+  ));
+}
+
+class _CallScreenState extends State<CallScreen> {
   int? _remoteUid; // uid of the remote user
   bool _isJoined = false; // Indicates if the local user has joined the channel
   late RtcEngine agoraEngine; // Agora engine instance
-
-  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
-      GlobalKey<ScaffoldMessengerState>(); // Global key to access the scaffold
-
-  showMessage(String message) {
-    scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
-      content: Text(message),
-    ));
-  }
 
   @override
   void initState() {
@@ -323,10 +323,12 @@ class _CallScreenState extends State<CallScreen> {
   Future<void> setupVoiceSDKEngine() async {
     // retrieve or request microphone permission
     await [Permission.microphone].request();
-
     //create an instance of the Agora engine
     agoraEngine = createAgoraRtcEngine();
-    await agoraEngine.initialize(RtcEngineContext(appId: appID));
+    await agoraEngine.initialize(RtcEngineContext(
+      appId: appID,
+      channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+    ));
 
     // Register the event handler
     agoraEngine.registerEventHandler(
@@ -393,7 +395,6 @@ class _CallScreenState extends State<CallScreen> {
                         _remoteUid = null;
                       });
                       agoraEngine.leaveChannel();
-
                     },
                   ),
                 ),
@@ -402,13 +403,6 @@ class _CallScreenState extends State<CallScreen> {
           ],
         ));
   }
-
-  // Clean up the resources when you leave
-  // @override
-  // void dispose() async {
-  //
-  //     super.dispose();
-  // }
 
   void leave() {
     _isJoined = false;
@@ -446,32 +440,16 @@ class _CallScreenState extends State<CallScreen> {
     FlutterCallkitIncoming.endAllCalls();
     ChannelMediaOptions options = const ChannelMediaOptions(
       clientRoleType: ClientRoleType.clientRoleBroadcaster,
-      channelProfile: ChannelProfileType.channelProfileCommunication,
     );
-
+    String? token =  '';
+    print('channel name =========> ${widget.channelName}');
+    print('token =========> $token');
     await agoraEngine.joinChannel(
-      token:
-          '007eJxTYHgZuuGy04yD83WlF3EZ7WY6I+tzf/r3q2XB91+9PxHicdBJgcE80dDMwtgkxcQ8KdUk1SAl0STJyNLE0jjNKDXFwjLJ6Prhq6kNgYwMfVyzmRgZIBDEZ2HIysjPY2AAAN3kIas=',
-      channelId: 'jhon',
+      token: token,
+      // '007eJxTYFBJn3I65r3zuR+VVysfmE49YPhboSnz/PXHmqdrX27c8+qJAoN5oqGZhbFJiol5UqpJqkFKokmSkaWJpXGaUWqKhWWS0ZQv11IbAhkZVpjtYGZkgEAQ35Ih1zc/KdQ4L6QwPCU4Mc8kMjQgKCo11cXI2y3bKN7Y38iyyLLKMT0rKTM8tSgit6SqKMrD0CAvx8yIgQEAPvk2YA==',
+      channelId: widget.channelName,
       options: options,
       uid: 0,
     );
-  }
-
-  Future<String?> getAgoraChannelToken(String channel,
-      [String role = "subscriber"]) async {
-    try {
-      String adminUrl =
-          'https://$appID.webdemo.agora.io/rtc/RtcToken.php?role=1&channelName=$channel';
-      final Dio dio = Dio();
-      final response = await dio.post(
-        adminUrl,
-        data: {"channel": channel, "role": role},
-      );
-      return response.data["token"] as String;
-    } catch (e) {
-      debugPrint("getAgoraChannelToken: $e");
-    }
-    return null;
   }
 }

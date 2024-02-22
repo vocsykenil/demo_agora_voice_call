@@ -44,7 +44,9 @@ dependencies:
   cloud_firestore: ^4.15.5
   dio: ^5.4.1
   get: ^4.6.6
-  flutter_easyloading: ^3.0.5
+#  agora_token_service: ^0.1.2
+  get_storage: ^2.1.1
+  firebase_auth:
 
 
 dependency_overrides:
