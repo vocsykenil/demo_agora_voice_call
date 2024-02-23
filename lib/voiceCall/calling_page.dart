@@ -317,6 +317,7 @@ class _CallScreenState extends State<CallScreen> {
   void initState() {
     super.initState();
     // Set up an instance of Agora engine
+    generateToken(widget.channelName);
     setupVoiceSDKEngine();
   }
 
@@ -441,7 +442,7 @@ class _CallScreenState extends State<CallScreen> {
     ChannelMediaOptions options = const ChannelMediaOptions(
       clientRoleType: ClientRoleType.clientRoleBroadcaster,
     );
-    String? token =  '';
+    String token = await generateToken(widget.channelName);
     print('channel name =========> ${widget.channelName}');
     print('token =========> $token');
     await agoraEngine.joinChannel(

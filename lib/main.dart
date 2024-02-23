@@ -90,6 +90,7 @@ Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await GetStorage.init();
   runApp(MyApp());
@@ -157,8 +158,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       badge: false,
       sound: false,
     );
+    await FirebaseMessaging.instance.setDeliveryMetricsExportToBigQuery(true);
+
     _firebaseMessaging = FirebaseMessaging.instance;
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print(
           'Message title: ${message.notification?.title}, body: ${message.notification?.body}, data: ${message.data}');

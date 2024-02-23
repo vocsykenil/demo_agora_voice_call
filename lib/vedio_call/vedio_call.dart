@@ -1,13 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:agora_uikit/agora_uikit.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as https;
 
-
 String appID = '7a16834d47be4e0da4b29493f2ed89b2';
 String appCertificate = '058aed4edb5642699c16911982c343c7';
-
 
 class VideoCallPage extends StatefulWidget {
   final String channelName;
@@ -147,7 +146,8 @@ class _VideoCallPageState extends State<VideoCallPage> {
                   elevation: 2.0,
                   fillColor: Colors.blueAccent,
                   padding: const EdgeInsets.all(12.0),
-                  child: Text('${stopwatch.elapsed.inMinutes}:${stopwatch.elapsed.inSeconds}'),
+                  child: Text(
+                      '${stopwatch.elapsed.inMinutes}:${stopwatch.elapsed.inSeconds}'),
                 ),
               ],
             ),
@@ -238,10 +238,10 @@ class _VideoCallPageState extends State<VideoCallPage> {
   }
 }
 
-Future<String> generateToken(String channelName)async{
-  String token = '';
-  String uri = 'https://agora-token-generator-demo.vercel.app/api/main?type=rtc';
-  var body = {
+Future<String> generateToken(String channelName) async {
+  String uri =
+      'https://agora-token-generator-demo.vercel.app/api/main?type=rtc';
+  Map<String, dynamic> body = {
     "appId": "7a16834d47be4e0da4b29493f2ed89b2",
     "certificate": "058aed4edb5642699c16911982c343c7",
     "channel": channelName,
@@ -249,15 +249,10 @@ Future<String> generateToken(String channelName)async{
     "role": "publisher",
     "expire": 3600
   };
- var headers = {
-    "Content-Type" : "application/json"
-};
-
-
-
-  final response = await https.post(Uri.parse(uri),body: body,headers: headers);
-  if(response.body.isNotEmpty){
-    print('body =========> ${response.body}');
-  }
-  return token;
+  String jsonBody = json.encode(body);
+  Map<String, String> headers = {"Content-Type": "application/json"};
+  final response =
+  await https.post(Uri.parse(uri), body: jsonBody, headers: headers);
+  final decodeData = jsonDecode(response.body);
+  return decodeData['rtcToken'];
 }

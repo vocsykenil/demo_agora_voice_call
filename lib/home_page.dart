@@ -221,6 +221,10 @@ Future sendMessage({
 }) async {
   Map data0 = {
     "data": data,
+    "notification": {
+      "title_loc_key": "notification_title",
+      "body_loc_key": "notification_message"
+    },
     "to": token,
   };
   final dio = Dio();
