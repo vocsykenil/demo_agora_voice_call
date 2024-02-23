@@ -35,16 +35,21 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
+   const Uuid uuid = Uuid();
+  String _currentUuid = '';
+  _currentUuid = uuid.v4();
+
   print('message data ===> ${message.data}');
   print('message data type ===> ${message.data.runtimeType}');
+  await Future.delayed(const Duration(seconds: 1), () async {
   final params = CallKitParams(
-    id: message.data['id'],
+    id: _currentUuid,
     nameCaller: message.data['senderName'],
     appName: 'Callkit',
     avatar: message.data['avatar'],
-    handle: uuid,
+    handle: '0123456789',
     type: 0,
-    duration: 30000,
+    duration: 10000,
     textAccept: 'Accept',
     textDecline: 'Decline',
     missedCallNotification: const NotificationParams(
@@ -84,14 +89,13 @@ Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
       ringtonePath: 'system_ringtone_default',
     ),
   );
-  await FlutterCallkitIncoming.showCallkitIncoming(params);
+  await FlutterCallkitIncoming.showCallkitIncoming(params);});
 }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
   await GetStorage.init();
   runApp(MyApp());
 }
@@ -158,21 +162,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       badge: false,
       sound: false,
     );
-    await FirebaseMessaging.instance.setDeliveryMetricsExportToBigQuery(true);
 
     _firebaseMessaging = FirebaseMessaging.instance;
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      print('hello how are you');
       print(
           'Message title: ${message.notification?.title}, body: ${message.notification?.body}, data: ${message.data}');
       _currentUuid = _uuid.v4();
       channelName = message.data['channelName'];
       showCallkitIncoming(_currentUuid!, message);
     });
-    _firebaseMessaging.getToken().then((token) {
-      box.write('token', token);
+    try {
+      _firebaseMessaging.getToken().then((token) {
+            box.write('token', token);
 
-      print('Device Token FCM: $token');
-    });
+            print('Device Token FCM: $token');
+          });
+    } catch (e) {
+      print('token error ==> $e');
+    }
   }
 
   @override

@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo_agora_ui_kit/voiceCall/voice_call_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/entities/android_params.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/entities/ios_params.dart';
+import 'package:flutter_callkit_incoming/entities/notification_params.dart';
 
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:get/get.dart';
@@ -46,6 +48,7 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Plugin example app'),
+        actions: [ElevatedButton(onPressed:makeFakeCallInComing, child:Text('democall'))],
       ),
       body: FutureBuilder(future: FirebaseFirestore.instance.collection('users').get(), builder: (context, snapshot) {
         if(snapshot.hasData){
@@ -92,7 +95,59 @@ class HomePageState extends State<HomePage> {
       }
     }
   }
+  Future<void> makeFakeCallInComing() async {
 
+      _currentUuid = _uuid.v4();
+
+      final params = CallKitParams(
+        id: _currentUuid,
+        nameCaller: 'Hien Nguyen',
+        appName: 'Callkit',
+        avatar: '',
+        handle: '0123456789',
+        type: 1,
+        duration: 10000,
+        textAccept: 'Accept',
+        textDecline: 'Decline',
+        missedCallNotification: const NotificationParams(
+          showNotification: true,
+          isShowCallback: true,
+          subtitle: 'Missed call',
+          callbackText: 'Call back',
+        ),
+        extra: <String, dynamic>{'userId': '1a2b3c4d'},
+        headers: <String, dynamic>{'apiKey': 'Abc@123!', 'platform': 'flutter'},
+        android: const AndroidParams(
+          isCustomNotification: true,
+          isShowLogo: false,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#0955fa',
+          backgroundUrl: 'assets/test.png',
+          actionColor: '#4CAF50',
+          textColor: '#ffffff',
+          incomingCallNotificationChannelName: 'Incoming Call',
+          missedCallNotificationChannelName: 'Missed Call',
+        ),
+        ios: const IOSParams(
+          iconName: 'CallKitLogo',
+          handleType: '',
+          supportsVideo: true,
+          maximumCallGroups: 2,
+          maximumCallsPerCallGroup: 1,
+          audioSessionMode: 'default',
+          audioSessionActive: true,
+          audioSessionPreferredSampleRate: 44100.0,
+          audioSessionPreferredIOBufferDuration: 0.005,
+          supportsDTMF: true,
+          supportsHolding: true,
+          supportsGrouping: false,
+          supportsUngrouping: false,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      );
+      await FlutterCallkitIncoming.showCallkitIncoming(params);
+
+  }
 
   Future<void> endCurrentCall() async {
     initCurrentCall();
@@ -104,7 +159,7 @@ class HomePageState extends State<HomePage> {
       token: token,
       data: {
         "senderName": name,
-        "avatar": 'https://i.pravatar.cc/100',
+        "avatar": '',
         "UserId": userID,
         "senderId": box.read('uid'),
         "type": '1',
@@ -120,7 +175,21 @@ class HomePageState extends State<HomePage> {
       handle: '0123456789',
       type: 1,
       extra: <String, dynamic>{'userId': '1a2b3c4d'},
-      ios: const IOSParams(handleType: 'number'),
+      ios: const IOSParams(
+        iconName: 'CallKitLogo',
+        handleType: 'number',
+        supportsVideo: true,
+        maximumCallGroups: 2,
+        maximumCallsPerCallGroup: 1,
+        audioSessionMode: 'default',
+        audioSessionActive: true,
+        audioSessionPreferredSampleRate: 44100.0,
+        audioSessionPreferredIOBufferDuration: 0.005,
+        supportsDTMF: true,
+        supportsHolding: true,
+        supportsGrouping: false,
+        supportsUngrouping: false,
+        ringtonePath: 'system_ringtone_default',),
     );
     await FlutterCallkitIncoming.startCall(params);
     Get.to(()=> CallScreen(channelName: '${userID}_${box.read('uid')}'));
@@ -221,6 +290,9 @@ Future sendMessage({
 }) async {
   Map data0 = {
     "data": data,
+    "notification":{
+      "title":"00"
+    },
     "to": token,
   };
   final dio = Dio();
