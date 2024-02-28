@@ -5,8 +5,8 @@ import 'package:agora_uikit/agora_uikit.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as https;
 
-String appID = '7a16834d47be4e0da4b29493f2ed89b2';
-String appCertificate = '058aed4edb5642699c16911982c343c7';
+String appID = 'eb8ca4de91b54c5980012c3e9b78e58d';
+// String appCertificate = '058aed4edb5642699c16911982c343c7';
 
 class VideoCallPage extends StatefulWidget {
   final String channelName;
@@ -242,8 +242,8 @@ Future<String> generateToken(String channelName) async {
   String uri =
       'https://agora-token-generator-demo.vercel.app/api/main?type=rtc';
   Map<String, dynamic> body = {
-    "appId": "7a16834d47be4e0da4b29493f2ed89b2",
-    "certificate": "058aed4edb5642699c16911982c343c7",
+    "appId": "eb8ca4de91b54c5980012c3e9b78e58d",
+    "certificate": "4b9bf7ed9a864577a4cc49f5d8fbbf68",
     "channel": channelName,
     "uid": "0",
     "role": "publisher",

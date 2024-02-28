@@ -35,6 +35,7 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
     LocalNotification().setTokenOnFirebase(box.read('token'));
     _uuid = const Uuid();
     _currentUuid = "";
@@ -48,7 +49,7 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Plugin example app'),
-        actions: [ElevatedButton(onPressed:makeFakeCallInComing, child:Text('democall'))],
+        actions: [ElevatedButton(onPressed:makeFakeCallInComing, child:const Text('democall'))],
       ),
       body: FutureBuilder(future: FirebaseFirestore.instance.collection('users').get(), builder: (context, snapshot) {
         if(snapshot.hasData){
@@ -86,7 +87,7 @@ class HomePageState extends State<HomePage> {
     var calls = await FlutterCallkitIncoming.activeCalls();
     if (calls is List) {
       if (calls.isNotEmpty) {
-        print('DATA: $calls');
+        print('DATA 0000: $calls');
         _currentUuid = calls[0]['id'];
         return calls[0];
       } else {
@@ -223,7 +224,7 @@ class HomePageState extends State<HomePage> {
             // TODO: show screen calling in Flutter
             break;
           case Event.actionCallAccept:
-            Get.to(() =>  CallScreen(channelName: channelName,));
+            Get.to(() =>  CallScreen(channelName: event.body['extra']['channelName'].toString(),));
             break;
           case Event.actionCallDecline:
             // TODO: declined an incoming call
@@ -290,9 +291,9 @@ Future sendMessage({
 }) async {
   Map data0 = {
     "data": data,
-    "notification":{
-      "title":"00"
-    },
+    // "notification": {
+    //   "title":"00"
+    // },
     "to": token,
   };
   final dio = Dio();

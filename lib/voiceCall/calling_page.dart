@@ -352,6 +352,7 @@ class _CallScreenState extends State<CallScreen> {
           showMessage("Remote user uid:$remoteUid left the channel");
           setState(() {
             _remoteUid = null;
+            leave();
           });
         },
       ),

@@ -21,16 +21,14 @@ import 'package:uuid/uuid.dart';
 import 'firebase_options.dart';
 import 'loginScreen.dart';
 
+GetStorage box = GetStorage();
 bool backgroundMessageHandled = false;
-final box = GetStorage();
 
-String channelName = '';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  channelName = message.data['channelName'];
   showCallkitIncoming(const Uuid().v4(), message);
 }
 
@@ -41,6 +39,7 @@ Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
 
   print('message data ===> ${message.data}');
   print('message data type ===> ${message.data.runtimeType}');
+
   await Future.delayed(const Duration(seconds: 1), () async {
   final params = CallKitParams(
     id: _currentUuid,
@@ -61,11 +60,12 @@ Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
     extra: <String, dynamic>{
       'UserId': message.data['UserId'],
       "senderId": message.data['senderId'],
+      "channelName": message.data['channelName'],
     },
     headers: <String, dynamic>{'apiKey': 'Abc@123!', 'platform': 'flutter'},
     android: const AndroidParams(
-      isCustomNotification: true,
-      isShowLogo: false,
+      isCustomNotification: false,
+      isShowLogo: true,
       ringtonePath: 'system_ringtone_default',
       backgroundColor: '#0955fa',
       backgroundUrl: 'assets/test.png',
@@ -93,10 +93,10 @@ Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
 }
 
 Future<void> main() async {
+  await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  await GetStorage.init();
   runApp(MyApp());
 }
 
@@ -114,20 +114,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
     _uuid = const Uuid();
     initFirebase();
-
     checkAndNavigationCallingPage();
   }
 
   Future<void> checkAndNavigationCallingPage() async {
     var currentCall = await getCurrentCall();
+    print('current call ======> $currentCall');
     if (currentCall != null) {
       Get.to(() => CallScreen(
-            channelName: channelName,
-          ));
+            channelName: currentCall['extra']['channelName'],
+      ));
     }
   }
 
@@ -156,8 +155,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ? Permission.notification.request()
         : null;
 
-    await FirebaseMessaging.instance
-        .setForegroundNotificationPresentationOptions(
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: false,
       badge: false,
       sound: false,
@@ -169,13 +167,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       print(
           'Message title: ${message.notification?.title}, body: ${message.notification?.body}, data: ${message.data}');
       _currentUuid = _uuid.v4();
-      channelName = message.data['channelName'];
+
       showCallkitIncoming(_currentUuid!, message);
     });
     try {
       _firebaseMessaging.getToken().then((token) {
             box.write('token', token);
-
             print('Device Token FCM: $token');
           });
     } catch (e) {
@@ -185,6 +182,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    print('isLogin ====> ${box.read('isLogin')}');
     return GetMaterialApp(
       home: box.read('isLogin') != null && box.read('isLogin') == true
           ? const HomePage()
