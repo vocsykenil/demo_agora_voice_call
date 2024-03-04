@@ -1,8 +1,13 @@
 // Import the generated file
 
+
+
+import 'dart:io';
+
 import 'package:agora_uikit/agora_uikit.dart';
 import 'package:demo_agora_ui_kit/voiceCall/calling_page.dart';
 import 'package:demo_agora_ui_kit/home_page.dart';
+import 'package:demo_agora_ui_kit/voiceCall/voice_call_controller.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -95,6 +100,23 @@ Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
 Future<void> main() async {
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
+  PermissionStatus status = await Permission.microphone.status;
+  if (status.isDenied) {
+    await Permission.microphone.request();
+  } else if (status.isPermanentlyDenied) {
+    print('status permission ===> $status');
+  }
+  await Permission.notification.status.then((value) {
+    print('value of notifiction ===> ${value}');
+    // if (value) {
+    try {
+      Permission.notification.request();
+    } catch (e) {
+      print(e);
+    }
+    print('value of notifiction ===> ${value}');
+    // }
+  });
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   runApp(MyApp());
@@ -109,14 +131,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final Uuid _uuid;
   String? _currentUuid;
 
-  late final FirebaseMessaging _firebaseMessaging;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _uuid = const Uuid();
-    initFirebase();
+    if(Platform.isAndroid){
+      initFirebase();
+    }
     checkAndNavigationCallingPage();
   }
 
@@ -124,9 +146,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     var currentCall = await getCurrentCall();
     print('current call ======> $currentCall');
     if (currentCall != null) {
-      Get.to(() => CallScreen(
-            channelName: currentCall['extra']['channelName'],
-      ));
+      CallController callController = Get.put(CallController());
+    callController.setupVoiceSDKEngine(currentCall['extra']['channelName']);
+      Get.to(() => CallScreen());
     }
   }
 
@@ -151,9 +173,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> initFirebase() async {
-    await Permission.notification.isDenied
-        ? Permission.notification.request()
-        : null;
 
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: false,
@@ -161,7 +180,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       sound: false,
     );
 
-    _firebaseMessaging = FirebaseMessaging.instance;
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print('hello how are you');
       print(
@@ -170,14 +189,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
       showCallkitIncoming(_currentUuid!, message);
     });
-    try {
-      _firebaseMessaging.getToken().then((token) {
-            box.write('token', token);
-            print('Device Token FCM: $token');
-          });
-    } catch (e) {
-      print('token error ==> $e');
-    }
+
   }
 
   @override
@@ -190,10 +202,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       theme: ThemeData.light(),
     );
   }
-
-  Future<void> getDevicePushTokenVoIP() async {
-    var devicePushTokenVoIP =
-        await FlutterCallkitIncoming.getDevicePushTokenVoIP();
-    print(devicePushTokenVoIP);
-  }
 }
+
+
+
+
+
+// Future<void> getDevicePushTokenVoIP(String userId,String firebaseToken) async {
+//
+//   if(Platform.isAndroid){
+//     LocalNotification().setTokenOnFirebase(firebaseToken);
+//   }else{
+//     LocalNotification().setTokenOnFirebase(devicePushTokenVoIP);
+//   }
+//   print(devicePushTokenVoIP);
+// }

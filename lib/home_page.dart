@@ -1,22 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo_agora_ui_kit/voiceCall/voice_call_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/entities/android_params.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/entities/ios_params.dart';
-import 'package:flutter_callkit_incoming/entities/notification_params.dart';
-
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:get/get.dart';
-
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'main.dart';
 import 'voiceCall/calling_page.dart';
-
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -35,8 +32,6 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-
-    LocalNotification().setTokenOnFirebase(box.read('token'));
     _uuid = const Uuid();
     _currentUuid = "";
     textEvents = "";
@@ -48,39 +43,49 @@ class HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plugin example app'),
-        actions: [ElevatedButton(onPressed:makeFakeCallInComing, child:const Text('democall'))],
+        title: const Text('Home page'),
       ),
-      body: FutureBuilder(future: FirebaseFirestore.instance.collection('users').get(), builder: (context, snapshot) {
-        if(snapshot.hasData){
-          return RefreshIndicator(
-            onRefresh: ()async{
-              setState(() {
-
-              });
-            },
-            child: ListView.builder(itemCount: snapshot.data?.docChanges.length,itemBuilder: (context, index) {
-               return snapshot.data!.docChanges[index].doc['uid'] != box.read('uid')?ListTile(title:Text(snapshot.data!.docChanges[index].doc['email']),trailing:  IconButton(
-                icon:  const Icon(
-                  Icons.call,
-                  color: Colors.green,
-                ),
-                onPressed: ()async{
-                  String token = await LocalNotification().getToken(snapshot.data!.docChanges[index].doc['uid']);
-                  startOutGoingCall(token,snapshot.data!.docChanges[index].doc['uid'],snapshot.data!.docChanges[index].doc['email']);
-                } ,
-              ) ,):const SizedBox();
-            },),
-          );
-        }else{
-          return const SizedBox();
-        }
-
-      }, ),
+      body: FutureBuilder(
+        future: FirebaseFirestore.instance.collection('users').get(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return RefreshIndicator(
+              onRefresh: () async {
+                setState(() {});
+              },
+              child: ListView.builder(
+                itemCount: snapshot.data?.docChanges.length,
+                itemBuilder: (context, index) {
+                  return snapshot.data!.docChanges[index].doc['uid'] !=
+                          box.read('uid')
+                      ? ListTile(
+                          title: Text(
+                              snapshot.data!.docChanges[index].doc['email']),
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.call,
+                              color: Colors.green,
+                            ),
+                            onPressed: () async {
+                              startOutGoingCall(
+                                  snapshot.data!.docChanges[index].doc['token'],
+                                  snapshot.data!.docChanges[index].doc['uid'],
+                                  snapshot.data!.docChanges[index].doc['email'],
+                                  snapshot.data!.docChanges[index].doc['device']);
+                            },
+                          ),
+                        )
+                      : const SizedBox();
+                },
+              ),
+            );
+          } else {
+            return const SizedBox();
+          }
+        },
+      ),
     );
   }
-
-
 
   Future<dynamic> initCurrentCall() async {
     //check current call from pushkit if possible
@@ -96,79 +101,41 @@ class HomePageState extends State<HomePage> {
       }
     }
   }
-  Future<void> makeFakeCallInComing() async {
 
-      _currentUuid = _uuid.v4();
 
-      final params = CallKitParams(
-        id: _currentUuid,
-        nameCaller: 'Hien Nguyen',
-        appName: 'Callkit',
-        avatar: '',
-        handle: '0123456789',
-        type: 1,
-        duration: 10000,
-        textAccept: 'Accept',
-        textDecline: 'Decline',
-        missedCallNotification: const NotificationParams(
-          showNotification: true,
-          isShowCallback: true,
-          subtitle: 'Missed call',
-          callbackText: 'Call back',
-        ),
-        extra: <String, dynamic>{'userId': '1a2b3c4d'},
-        headers: <String, dynamic>{'apiKey': 'Abc@123!', 'platform': 'flutter'},
-        android: const AndroidParams(
-          isCustomNotification: true,
-          isShowLogo: false,
-          ringtonePath: 'system_ringtone_default',
-          backgroundColor: '#0955fa',
-          backgroundUrl: 'assets/test.png',
-          actionColor: '#4CAF50',
-          textColor: '#ffffff',
-          incomingCallNotificationChannelName: 'Incoming Call',
-          missedCallNotificationChannelName: 'Missed Call',
-        ),
-        ios: const IOSParams(
-          iconName: 'CallKitLogo',
-          handleType: '',
-          supportsVideo: true,
-          maximumCallGroups: 2,
-          maximumCallsPerCallGroup: 1,
-          audioSessionMode: 'default',
-          audioSessionActive: true,
-          audioSessionPreferredSampleRate: 44100.0,
-          audioSessionPreferredIOBufferDuration: 0.005,
-          supportsDTMF: true,
-          supportsHolding: true,
-          supportsGrouping: false,
-          supportsUngrouping: false,
-          ringtonePath: 'system_ringtone_default',
-        ),
-      );
-      await FlutterCallkitIncoming.showCallkitIncoming(params);
-
-  }
 
   Future<void> endCurrentCall() async {
     initCurrentCall();
     await FlutterCallkitIncoming.endCall(_currentUuid!);
   }
 
-  Future startOutGoingCall(String token,String userID,String name) async {
-    sendMessage(
-      token: token,
-      data: {
-        "senderName": name,
-        "avatar": '',
-        "UserId": userID,
-        "senderId": box.read('uid'),
-        "type": '1',
-        "channelName":'${userID}_${box.read('uid')}',
-        "id": 0,
-        "sound": "default",
-      },
-    );
+  Future startOutGoingCall(
+      String token, String userID, String name, String device) async {
+    if (device == 'android') {
+      sendMessage(
+        token: token,
+        data: {
+          "senderName": name,
+          "avatar": '',
+          "UserId": userID,
+          "senderId": box.read('uid'),
+          "type": '1',
+          "channelName": '${userID}_${box.read('uid')}',
+          "id": 0,
+          "sound": "default",
+        },
+      );
+    } else {
+      sendIosCallNotification(
+          deviceToken: token,
+          senderName: name,
+          avatar: "",
+          userId: userID,
+          senderId: box.read("uid"),
+          type: "call",
+          uuid: const Uuid().v4());
+    }
+
     _currentUuid = _uuid.v4();
     final params = CallKitParams(
       id: _currentUuid,
@@ -190,10 +157,13 @@ class HomePageState extends State<HomePage> {
         supportsHolding: true,
         supportsGrouping: false,
         supportsUngrouping: false,
-        ringtonePath: 'system_ringtone_default',),
+        ringtonePath: 'system_ringtone_default',
+      ),
     );
     await FlutterCallkitIncoming.startCall(params);
-    Get.to(()=> CallScreen(channelName: '${userID}_${box.read('uid')}'));
+    CallController callController = Get.put(CallController());
+    callController.setupVoiceSDKEngine('${userID}_${box.read('uid')}');
+    Get.to(() =>  CallScreen());
   }
 
   Future<void> activeCalls() async {
@@ -224,7 +194,9 @@ class HomePageState extends State<HomePage> {
             // TODO: show screen calling in Flutter
             break;
           case Event.actionCallAccept:
-            Get.to(() =>  CallScreen(channelName: event.body['extra']['channelName'].toString(),));
+            CallController callController = Get.put(CallController());
+            callController.setupVoiceSDKEngine(event.body['extra']['channelName'].toString());
+            Get.to(() =>  CallScreen());
             break;
           case Event.actionCallDecline:
             // TODO: declined an incoming call
@@ -268,7 +240,41 @@ class HomePageState extends State<HomePage> {
     }
   }
 
-  //check with https://webhook.site/#!/2748bc41-8599-4093-b8ad-93fd328f1cd2
+  Future sendIosCallNotification(
+      {required String deviceToken,
+      required String senderName,
+      required String avatar,
+      required String userId,
+      required String senderId,
+      required String type,
+      required String uuid}) async {
+    print('Hello sendIosCallNotification');
+    Map data = {
+      "device_token": deviceToken,
+      "alert": senderName,
+      "nameCaller": senderName,
+      "senderName": senderName,
+      "avatar": avatar,
+      "UserId": userId,
+      "channelName": '${userId}_$senderId',
+      "senderId": senderId,
+      "type": type,
+      "id": uuid,
+      "handle": "0123456789"
+    };
+    // var body = json.encode(data);
+    Map<String, String>? headers = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    http.Response res = await http.post(
+      Uri.parse('https://vocsyapp.com/DemoCall_API/sendbox.php'),
+      headers: headers,
+      body: data,
+      encoding: Encoding.getByName('utf-8'),
+    );
+    print('Hello sendCallNotification com ${res.body}');
+  }
+
   Future<void> requestHttp(content) async {
     get(Uri.parse(
         'https://webhook.site/2748bc41-8599-4093-b8ad-93fd328f1cd2?data=$content'));
@@ -278,6 +284,7 @@ class HomePageState extends State<HomePage> {
     if (!mounted) return;
     setState(() {
       textEvents += '${event.toString()}\n';
+
       print('========================> ${textEvents}');
     });
   }
@@ -291,9 +298,9 @@ Future sendMessage({
 }) async {
   Map data0 = {
     "data": data,
-    // "notification": {
-    //   "title":"00"
-    // },
+    "content_available": true,
+    "ios_voip": 1,
+    "priority": "high",
     "to": token,
   };
   final dio = Dio();
@@ -304,6 +311,7 @@ Future sendMessage({
       options: Options(
         headers: <String, String>{
           'Content-Type': 'application/json',
+          "apns-push-type": "background",
           'Authorization':
               'key=AAAAdZ5yjas:APA91bGXmOAZkpJw0-G_nwtUaanY--56OKU7IhJ5qMG1ErLNwwktkqoNwQ9h0HCRzP1pbhcLjZ-vmigpeGRuUY_PuKsu9LwERHKTzviFW-DW1oCfPrVyFmg4stspRUMTqiR543iNr5hj'
         },

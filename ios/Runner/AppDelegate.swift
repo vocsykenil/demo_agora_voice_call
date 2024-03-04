@@ -1,3 +1,4 @@
+
 import UIKit
 import CallKit
 import AVFAudio
@@ -6,15 +7,14 @@ import Flutter
 import flutter_callkit_incoming
 
 @UIApplicationMain
-@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CallkitIncomingAppDelegate {
-
-
+@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate,CallkitIncomingAppDelegate {
+    
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         GeneratedPluginRegistrant.register(with: self)
-
+        
         //Setup VOIP
         let mainQueue = DispatchQueue.main
         let voipRegistry: PKPushRegistry = PKPushRegistry(queue: mainQueue)
@@ -24,19 +24,19 @@ import flutter_callkit_incoming
         //Use if using WebRTC
         //RTCAudioSession.sharedInstance().useManualAudio = true
         //RTCAudioSession.sharedInstance().isAudioEnabled = false
-
+        
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
-
+    
     // Call back from Recent history
     override func application(_ application: UIApplication,
                               continue userActivity: NSUserActivity,
                               restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-
+        
         guard let handleObj = userActivity.handle else {
             return false
         }
-
+        
         guard let isVideo = userActivity.isVideo else {
             return false
         }
@@ -48,47 +48,59 @@ import flutter_callkit_incoming
         //data.nameCaller = nameCaller
         SwiftFlutterCallkitIncomingPlugin.sharedInstance?.startCall(data, fromPushKit: true)
 
+        
         return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
-
+    
     // Handle updated push credentials
     func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) {
         print(credentials.token)
         let deviceToken = credentials.token.map { String(format: "%02x", $0) }.joined()
-        print(deviceToken)
+        print("========= token =======================> \(deviceToken)")
         //Save deviceToken to your server
         SwiftFlutterCallkitIncomingPlugin.sharedInstance?.setDevicePushTokenVoIP(deviceToken)
     }
-
+    
     func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
         print("didInvalidatePushTokenFor")
         SwiftFlutterCallkitIncomingPlugin.sharedInstance?.setDevicePushTokenVoIP("")
     }
-
+    
     // Handle incoming pushes
     func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
         print("didReceiveIncomingPushWith")
-        guard type == .voIP else { return }
-
+        
+//        guard type == .voIP else { return }
+        print("payload ========> \(payload.dictionaryPayload)")
         let id = payload.dictionaryPayload["id"] as? String ?? ""
         let nameCaller = payload.dictionaryPayload["nameCaller"] as? String ?? ""
         let handle = payload.dictionaryPayload["handle"] as? String ?? ""
         let isVideo = payload.dictionaryPayload["isVideo"] as? Bool ?? false
-
+        let extra = payload.dictionaryPayload["extra"]  as? [String: Any]
+        
+        let userId = extra?["UserId"] as? String ?? ""
+        let senderId = extra?["senderId"] as? String ?? ""
+        let channelName = extra?["channelName"] as? String ?? ""
+        let type = extra?["type"] as? String ?? ""
+            print("extra perameter userId \(userId)")
+            print("extra perameter senderId \(senderId)")
+        
         let data = flutter_callkit_incoming.Data(id: id, nameCaller: nameCaller, handle: handle, type: isVideo ? 1 : 0)
-        //set more data
-        data.extra = ["user": "abc@123", "platform": "ios"]
-        //data.iconName = ...
-        //data.....
-        SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(data, fromPushKit: true)
-
+        data.extra = ["user": "abc@123","UserId":userId,"senderId":senderId,"channelName":channelName]
+        
+        print("Hello sub \(type)")
+        if(type == "call"){
+            SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(data, fromPushKit: true)
+        }else if (type == "cut"){
+            SwiftFlutterCallkitIncomingPlugin.sharedInstance?.endCall(data)
+        }
+        
         //Make sure call completion()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             completion()
         }
     }
-
-
+    
     // Func Call api for Accept
     func onAccept(_ call: Call, _ action: CXAnswerCallAction) {
         let json = ["action": "ACCEPT", "data": call.data.toJSON()] as [String: Any]
@@ -105,7 +117,7 @@ import flutter_callkit_incoming
             }
         }
     }
-
+    
     // Func Call API for Decline
     func onDecline(_ call: Call, _ action: CXEndCallAction) {
         let json = ["action": "DECLINE", "data": call.data.toJSON()] as [String: Any]
@@ -114,7 +126,7 @@ import flutter_callkit_incoming
             switch result {
             case .success(let data):
                 print("Received data: \(data)")
-                //Make sure call action.fulfill() when you are done
+                // Make sure call action.fulfill() when you are done
                 action.fulfill()
 
             case .failure(let error):
@@ -122,7 +134,7 @@ import flutter_callkit_incoming
             }
         }
     }
-
+    
     // Func Call API for End
     func onEnd(_ call: Call, _ action: CXEndCallAction) {
         let json = ["action": "END", "data": call.data.toJSON()] as [String: Any]
@@ -139,7 +151,7 @@ import flutter_callkit_incoming
             }
         }
     }
-
+    
     // Func Call API for TimeOut
     func onTimeOut(_ call: Call) {
         let json = ["action": "TIMEOUT", "data": call.data.toJSON()] as [String: Any]
@@ -154,28 +166,28 @@ import flutter_callkit_incoming
             }
         }
     }
-
+    
     // Func Callback Toggle Audio Session
     func didActivateAudioSession(_ audioSession: AVAudioSession) {
         //Use if using WebRTC
         //RTCAudioSession.sharedInstance().audioSessionDidActivate(audioSession)
         //RTCAudioSession.sharedInstance().isAudioEnabled = true
     }
-
+    
     // Func Callback Toggle Audio Session
     func didDeactivateAudioSession(_ audioSession: AVAudioSession) {
         //Use if using WebRTC
         //RTCAudioSession.sharedInstance().audioSessionDidDeactivate(audioSession)
         //RTCAudioSession.sharedInstance().isAudioEnabled = false
     }
-
+    
     func performRequest(parameters: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
         if let url = URL(string: "https://webhook.site/e32a591f-0d17-469d-a70d-33e9f9d60727") {
             var request = URLRequest(url: url)
             request.httpMethod = "POST"
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             //Add header
-
+            
             do {
                 let jsonData = try JSONSerialization.data(withJSONObject: parameters, options: [])
                 request.httpBody = jsonData
@@ -183,13 +195,13 @@ import flutter_callkit_incoming
                 completion(.failure(error))
                 return
             }
-
+            
             let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
                 if let error = error {
                     completion(.failure(error))
                     return
                 }
-
+                
                 guard let data = data else {
                     completion(.failure(NSError(domain: "mobile.app", code: 0, userInfo: [NSLocalizedDescriptionKey: "Empty data"])))
                     return
@@ -207,6 +219,6 @@ import flutter_callkit_incoming
             completion(.failure(NSError(domain: "mobile.app", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
         }
     }
-
-
+    
+    
 }

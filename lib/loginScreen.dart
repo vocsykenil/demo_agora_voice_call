@@ -1,10 +1,15 @@
 import 'dart:developer';
+import 'dart:io';
+
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo_agora_ui_kit/home_page.dart';
 import 'package:demo_agora_ui_kit/voiceCall/calling_page.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:get/get.dart';
 
 import 'main.dart';
@@ -43,8 +48,12 @@ class LoginScreen extends StatelessWidget {
                   await auth.createUserWithEmailAndPassword(
                     email: email.text,
                     password: pass.text,
-                  ).then((value) { box.write('uid',value.user?.uid);
-                    FirebaseFirestore.instance.collection('users').doc().set({"email":value.user?.email,"uid":value.user?.uid});
+                  ).then((value) async { box.write('uid',value.user?.uid);
+                  var devicePushTokenVoIP =
+                  await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+                  String? token = await FirebaseMessaging.instance.getToken();
+                    FirebaseFirestore.instance.collection('users').doc(value.user?.uid).set({"email":value.user?.email,"uid":value.user?.uid,"device":Platform.isAndroid?'android':'ios',"token":Platform.isAndroid?token:devicePushTokenVoIP});
+                  box.write('uid',value.user?.uid);
                     box.write('isLogin',true);
                     Get.to(()=>const HomePage());
                   });
@@ -55,8 +64,12 @@ class LoginScreen extends StatelessWidget {
                   } else if (e.code == 'email-already-in-use') {
                     auth.signInWithEmailAndPassword(
                             email: email.text, password: pass.text)
-                        .then((value) {
-                          box.write('uid',value.user?.uid);
+                        .then((value) async {
+                      var devicePushTokenVoIP =
+                          await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+                      String? token = await FirebaseMessaging.instance.getToken();
+                      FirebaseFirestore.instance.collection('users').doc(value.user?.uid).update({"email":value.user?.email,"uid":value.user?.uid,"device":Platform.isAndroid?'android':'ios',"token":Platform.isAndroid?token:devicePushTokenVoIP});
+                      box.write('uid',value.user?.uid);
                           box.write('isLogin',true);
                           Get.to(()=>const HomePage());
                           log('value  ======> ${value.user?.uid}');
