@@ -146,8 +146,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     var currentCall = await getCurrentCall();
     print('current call ======> $currentCall');
     if (currentCall != null) {
-      CallController callController = Get.put(CallController());
-    callController.setupVoiceSDKEngine(currentCall['extra']['channelName']);
+      VoiceCallController voiceCallController = Get.put(VoiceCallController());
+    voiceCallController.setupVoiceSDKEngine();
+      voiceCallController.join(currentCall['extra']['channelName']);
+
       Get.to(() => CallScreen());
     }
   }

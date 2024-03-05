@@ -58,19 +58,21 @@ import 'package:get/get.dart';
 
 import 'calling_page.dart';
 
-class CallController extends GetxController{
-
+class VoiceCallController extends GetxController {
+  Timer? _timer;
+  RxInt start = 0.obs;
+  String displayTime = '';
   RxInt? _remoteUid; // uid of the remote user
   bool _isJoined = false; // Indicates if the local user has joined the channel
   late RtcEngine agoraEngine; // Agora engine instance
-  Future<void> setupVoiceSDKEngine(String channelName) async {
+  Future<void> setupVoiceSDKEngine() async {
     // retrieve or request microphone permission
     await [Permission.microphone].request();
+    await [Permission.audio].request();
     //create an instance of the Agora engine
     agoraEngine = createAgoraRtcEngine();
     await agoraEngine.initialize(RtcEngineContext(
       appId: appID,
-      channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
     ));
 
     // Register the event handler
@@ -79,27 +81,24 @@ class CallController extends GetxController{
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
           showMessage(
               "Local user uid:${connection.localUid} joined the channel");
-
-            _isJoined = true;
+          _isJoined = true;
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           showMessage("Remote user uid:$remoteUid joined the channel");
-
-            _remoteUid?.value = remoteUid;
-
+          print('================ call connected ================');
+          startTimer();
+          _remoteUid?.value = remoteUid;
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
           showMessage("Remote user uid:$remoteUid left the channel");
 
-            _remoteUid = null;
-            leave();
-
+          _remoteUid = null;
+          leave();
         },
       ),
     );
     agoraEngine.enableAudio();
-    await join(channelName);
   }
 
 
@@ -107,19 +106,21 @@ class CallController extends GetxController{
     _isJoined = false;
     _remoteUid = null;
     FlutterCallkitIncoming.endAllCalls();
+    _timer?.cancel();
+    start.value = 0;
     agoraEngine.leaveChannel();
     agoraEngine.release();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-   Get.back();
+      Get.back();
     });
   }
 
-  @override
-  void dispose() {
-    // make sure the call was deleted
-    // and you use the callTime for the call logs.
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   // make sure the call was deleted
+  //   // and you use the callTime for the call logs.
+  //   super.dispose();
+  // }
 
   Widget status() {
     RxString statusText = ''.obs;
@@ -131,24 +132,57 @@ class CallController extends GetxController{
     else
       statusText.value = 'Connected to remote user, uid:$_remoteUid';
 
-    return Text(
-      statusText.value,
-    );
+    return Obx(() {
+      return Text(
+        statusText.value,
+      );
+    });
   }
 
-  Future join(String channelNAme ) async {
+  Future join(String channelNAme) async {
     ChannelMediaOptions options = const ChannelMediaOptions(
       clientRoleType: ClientRoleType.clientRoleBroadcaster,
+      channelProfile: ChannelProfileType.channelProfileCommunication,
     );
     String token = await generateToken(channelNAme);
-    print('channel name =========> ${channelNAme}');
+    print('channel name =========> $channelNAme');
     print('token =========> $token');
     await agoraEngine.joinChannel(
       token: token,
-      // '007eJxTYFBJn3I65r3zuR+VVysfmE49YPhboSnz/PXHmqdrX27c8+qJAoN5oqGZhbFJiol5UqpJqkFKokmSkaWJpXGaUWqKhWWS0ZQv11IbAhkZVpjtYGZkgEAQ35Ih1zc/KdQ4L6QwPCU4Mc8kMjQgKCo11cXI2y3bKN7Y38iyyLLKMT0rKTM8tSgit6SqKMrD0CAvx8yIgQEAPvk2YA==',
       channelId: channelNAme,
       options: options,
       uid: 0,
     );
   }
+
+  String intToTimeLeft(int value) {
+    int h, m, s;
+    h = value ~/ 3600;
+    m = ((value - h * 3600)) ~/ 60;
+    s = value - (h * 3600) - (m * 60);
+    String hourLeft = h
+        .toString()
+        .length < 2 ? '0$h' : h.toString();
+    String minuteLeft = m
+        .toString()
+        .length < 2 ? '0$m' : m.toString();
+    String secondsLeft = s
+        .toString()
+        .length < 2 ? '0$s' : s.toString();
+    String result = "$hourLeft:$minuteLeft:$secondsLeft";
+    return result;
+  }
+
+  void startTimer() {
+    const oneSec = Duration(seconds: 1);
+    _timer = Timer.periodic(
+      oneSec,
+          (Timer timer) {
+        print('==================================> ${start}');
+        start++;
+      },
+    );
+  }
+
+
 }

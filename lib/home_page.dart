@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo_agora_ui_kit/voiceCall/voice_call_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/entities/android_params.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/entities/ios_params.dart';
@@ -61,18 +62,40 @@ class HomePageState extends State<HomePage> {
                       ? ListTile(
                           title: Text(
                               snapshot.data!.docChanges[index].doc['email']),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.call,
-                              color: Colors.green,
+                          trailing: SizedBox(
+                            width: 100,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.call,
+                                    color: Colors.green,
+                                  ),
+                                  onPressed: () async {
+                                    startOutGoingCall(
+                                        snapshot.data!.docChanges[index].doc['token'],
+                                        snapshot.data!.docChanges[index].doc['uid'],
+                                        snapshot.data!.docChanges[index].doc['email'],
+                                        snapshot.data!.docChanges[index].doc['device'],true);
+                                  },
+                                ),
+                                // IconButton(
+                                //   icon: const Icon(
+                                //     Icons.video_call,
+                                //     color: Colors.green,
+                                //   ),
+                                //   onPressed: () async {
+                                //     startOutGoingCall(
+                                //         snapshot.data!.docChanges[index].doc['token'],
+                                //         snapshot.data!.docChanges[index].doc['uid'],
+                                //         snapshot.data!.docChanges[index].doc['email'],
+                                //         snapshot.data!.docChanges[index].doc['device'],false);
+                                //   },
+                                // ),
+                              ],
                             ),
-                            onPressed: () async {
-                              startOutGoingCall(
-                                  snapshot.data!.docChanges[index].doc['token'],
-                                  snapshot.data!.docChanges[index].doc['uid'],
-                                  snapshot.data!.docChanges[index].doc['email'],
-                                  snapshot.data!.docChanges[index].doc['device']);
-                            },
                           ),
                         )
                       : const SizedBox();
@@ -110,7 +133,7 @@ class HomePageState extends State<HomePage> {
   }
 
   Future startOutGoingCall(
-      String token, String userID, String name, String device) async {
+      String token, String userID, String name, String device,bool isVoiceCall) async {
     if (device == 'android') {
       sendMessage(
         token: token,
@@ -120,16 +143,19 @@ class HomePageState extends State<HomePage> {
           "UserId": userID,
           "senderId": box.read('uid'),
           "type": '1',
-          "channelName": '${userID}_${box.read('uid')}',
+          "channelName": '${box.read('uid')}_$userID',
           "id": 0,
           "sound": "default",
         },
       );
     } else {
+
       sendIosCallNotification(
           deviceToken: token,
           senderName: name,
+          channelName: '${box.read('uid')}_$userID',
           avatar: "",
+          isVoiceCall: isVoiceCall == true ? 1.toString():0.toString(),
           userId: userID,
           senderId: box.read("uid"),
           type: "call",
@@ -141,8 +167,17 @@ class HomePageState extends State<HomePage> {
       id: _currentUuid,
       nameCaller: 'akash kachhi',
       handle: '0123456789',
-      type: 1,
+      type: isVoiceCall == true ? 1:0,
       extra: <String, dynamic>{'userId': '1a2b3c4d'},
+      android: const AndroidParams(
+        isCustomNotification: false,
+        isShowLogo: true,
+        ringtonePath: 'system_ringtone_default',
+        backgroundColor: '#0955fa',
+        backgroundUrl: 'assets/test.png',
+        actionColor: '#4CAF50',
+        textColor: '#ffffff',
+      ),
       ios: const IOSParams(
         iconName: 'CallKitLogo',
         handleType: 'number',
@@ -161,15 +196,19 @@ class HomePageState extends State<HomePage> {
       ),
     );
     await FlutterCallkitIncoming.startCall(params);
-    CallController callController = Get.put(CallController());
-    callController.setupVoiceSDKEngine('${userID}_${box.read('uid')}');
-    Get.to(() =>  CallScreen());
+    print('user id =====> $userID');
+    print('user id 00 =====> ${box.read('uid')}');
+    print('user id 11 =====> $name');
+    print('user id 22 =====> ${box.read('uid')}_$userID');
+    VoiceCallController callController = Get.put(VoiceCallController());
+      callController.setupVoiceSDKEngine();
+      callController.join('${box.read('uid')}_$userID');
+      Get.to(() =>  const CallScreen());
   }
 
-  Future<void> activeCalls() async {
-    var calls = await FlutterCallkitIncoming.activeCalls();
-    print(calls);
-  }
+  // Future<void> activeCalls() async {
+  //   var calls = await FlutterCallkitIncoming.activeCalls();
+  // }
 
   Future<void> endAllCalls() async {
     await FlutterCallkitIncoming.endAllCalls();
@@ -194,8 +233,10 @@ class HomePageState extends State<HomePage> {
             // TODO: show screen calling in Flutter
             break;
           case Event.actionCallAccept:
-            CallController callController = Get.put(CallController());
-            callController.setupVoiceSDKEngine(event.body['extra']['channelName'].toString());
+            VoiceCallController callController = Get.put(VoiceCallController());
+            callController.setupVoiceSDKEngine();
+            callController.join(event.body['extra']['channelName'].toString());
+
             Get.to(() =>  CallScreen());
             break;
           case Event.actionCallDecline:
@@ -245,6 +286,8 @@ class HomePageState extends State<HomePage> {
       required String senderName,
       required String avatar,
       required String userId,
+      required String channelName,
+      required String isVoiceCall,
       required String senderId,
       required String type,
       required String uuid}) async {
@@ -254,9 +297,10 @@ class HomePageState extends State<HomePage> {
       "alert": senderName,
       "nameCaller": senderName,
       "senderName": senderName,
+      "isVoiceCall": isVoiceCall,
       "avatar": avatar,
       "UserId": userId,
-      "channelName": '${userId}_$senderId',
+      "channelName": channelName,
       "senderId": senderId,
       "type": type,
       "id": uuid,
