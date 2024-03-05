@@ -167,7 +167,7 @@ class HomePageState extends State<HomePage> {
       id: _currentUuid,
       nameCaller: 'akash kachhi',
       handle: '0123456789',
-      type: isVoiceCall == true ? 1:0,
+      type: 1,
       extra: <String, dynamic>{'userId': '1a2b3c4d'},
       android: const AndroidParams(
         isCustomNotification: false,
