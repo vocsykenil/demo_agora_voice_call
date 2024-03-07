@@ -47,8 +47,6 @@ import flutter_callkit_incoming
         //set more data...
         //data.nameCaller = nameCaller
         SwiftFlutterCallkitIncomingPlugin.sharedInstance?.startCall(data, fromPushKit: true)
-
-        
         return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
     
@@ -89,9 +87,9 @@ import flutter_callkit_incoming
         data.extra = ["user": "abc@123","UserId":userId,"senderId":senderId,"channelName":channelName]
         
         print("Hello sub \(type)")
-        if(type == "call"){
+        if(type == "is Calling you"){
             SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(data, fromPushKit: true)
-        }else if (type == "cut"){
+        }else if (type == "Cut"){
             SwiftFlutterCallkitIncomingPlugin.sharedInstance?.endCall(data)
         }
         

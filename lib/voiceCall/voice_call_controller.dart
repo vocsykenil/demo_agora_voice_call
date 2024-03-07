@@ -51,6 +51,7 @@
 import 'dart:async';
 import 'package:demo_agora_ui_kit/vedio_call/vedio_call.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
@@ -59,6 +60,7 @@ import 'package:get/get.dart';
 import 'calling_page.dart';
 
 class VoiceCallController extends GetxController {
+  late CallKitParams callKitParams;
   Timer? _timer;
   RxInt start = 0.obs;
   String displayTime = '';
@@ -92,7 +94,6 @@ class VoiceCallController extends GetxController {
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
           showMessage("Remote user uid:$remoteUid left the channel");
-
           _remoteUid = null;
           leave();
         },
@@ -102,7 +103,7 @@ class VoiceCallController extends GetxController {
   }
 
 
-  void leave() {
+  Future<void> leave() async {
     _isJoined = false;
     _remoteUid = null;
     FlutterCallkitIncoming.endAllCalls();
@@ -110,9 +111,7 @@ class VoiceCallController extends GetxController {
     start.value = 0;
     agoraEngine.leaveChannel();
     agoraEngine.release();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       Get.back();
-    });
   }
 
   // @override
@@ -184,5 +183,5 @@ class VoiceCallController extends GetxController {
     );
   }
 
-
 }
+

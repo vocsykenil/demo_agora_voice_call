@@ -20,6 +20,7 @@ import 'package:flutter_callkit_incoming/entities/notification_params.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:loader_overlay/loader_overlay.dart';
 
 import 'package:uuid/uuid.dart';
 
@@ -34,7 +35,11 @@ bool backgroundMessageHandled = false;
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  showCallkitIncoming(const Uuid().v4(), message);
+  if(message.data['type']=='is Calling you'){
+    showCallkitIncoming(const Uuid().v4(), message);
+  }else if(message.data['type']=='Cut'){
+    FlutterCallkitIncoming.endAllCalls();
+  }
 }
 
 Future<void> showCallkitIncoming(String uuid, RemoteMessage message) async {
@@ -147,10 +152,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     print('current call ======> $currentCall');
     if (currentCall != null) {
       VoiceCallController voiceCallController = Get.put(VoiceCallController());
-    voiceCallController.setupVoiceSDKEngine();
-      voiceCallController.join(currentCall['extra']['channelName']);
-
-      Get.to(() => CallScreen());
+       voiceCallController.setupVoiceSDKEngine();
+        voiceCallController.join(currentCall['extra']['channelName']);
+      Get.to(() => CallScreen(chanelName: currentCall['extra']['channelName'],isSelfCut: false,data: {},));
     }
   }
 
@@ -187,9 +191,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       print('hello how are you');
       print(
           'Message title: ${message.notification?.title}, body: ${message.notification?.body}, data: ${message.data}');
-      _currentUuid = _uuid.v4();
+      if(message.data['type']=='is Calling you'){
+        _currentUuid = _uuid.v4();
+        showCallkitIncoming(const Uuid().v4(), message);
+      }else if(message.data['type']=='Cut'){
+        FlutterCallkitIncoming.endAllCalls();
+      }
 
-      showCallkitIncoming(_currentUuid!, message);
+
+      // showCallkitIncoming(_currentUuid!, message);
     });
 
   }
@@ -197,25 +207,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     print('isLogin ====> ${box.read('isLogin')}');
-    return GetMaterialApp(
-      home: box.read('isLogin') != null && box.read('isLogin') == true
-          ? const HomePage()
-          : LoginScreen(),
-      theme: ThemeData.light(),
+    return GlobalLoaderOverlay(
+      useDefaultLoading: false,
+      overlayWidgetBuilder: (progress) {
+        return const Loading();
+      },
+      child: GetMaterialApp(
+        home: box.read('isLogin') != null && box.read('isLogin') == true
+            ? const HomePage()
+            : LoginScreen(),
+        theme: ThemeData.light(),
+      ),
     );
   }
 }
-
-
-
-
-
-// Future<void> getDevicePushTokenVoIP(String userId,String firebaseToken) async {
-//
-//   if(Platform.isAndroid){
-//     LocalNotification().setTokenOnFirebase(firebaseToken);
-//   }else{
-//     LocalNotification().setTokenOnFirebase(devicePushTokenVoIP);
-//   }
-//   print(devicePushTokenVoIP);
-// }
