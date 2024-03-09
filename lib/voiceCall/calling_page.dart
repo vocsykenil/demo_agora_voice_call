@@ -1,6 +1,5 @@
 import 'package:agora_uikit/agora_uikit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo_agora_ui_kit/voiceCall/voice_call_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
@@ -20,7 +19,7 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  final VoiceCallController callController = Get.put(VoiceCallController());
+
   bool muted = false;
   late RxBool isCall;
   bool speaker = true;
@@ -54,7 +53,6 @@ class _CallScreenState extends State<CallScreen> {
               callController.leave();
             });
           }
-
         }
       // });
     });
@@ -65,6 +63,13 @@ class _CallScreenState extends State<CallScreen> {
         'microphone perrminstion ====> ${await Permission.microphone.status.isGranted}');
     bool isEnable = await callController.agoraEngine.isSpeakerphoneEnabled();
     print('isSpeakerphoneEnabled ====> $isEnable');
+  }
+  @override
+  void dispose() {
+    print('dispose successfully 😂😂');
+    callController.timer?.cancel();
+    callController.start.value = 0;
+    super.dispose();
   }
 
   @override
@@ -83,13 +88,11 @@ class _CallScreenState extends State<CallScreen> {
               height: MediaQuery.sizeOf(context).height * 0.500,
             ),
             Obx(() {
-              callController.displayTime =
-                  callController.intToTimeLeft(callController.start.value);
               return Center(
                 child: SizedBox(
                     height: 40,
                     child: Text(
-                      callController.displayTime,
+                      callController.intToTimeLeft(),
                       style: const TextStyle(fontSize: 14),
                     )),
               );
@@ -97,9 +100,6 @@ class _CallScreenState extends State<CallScreen> {
             const SizedBox(
               height: 30,
             ),
-
-            // Button Row
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
@@ -147,6 +147,7 @@ class _CallScreenState extends State<CallScreen> {
                     }
                   }else{
                     callController.leave();
+
                   }
 
                   },

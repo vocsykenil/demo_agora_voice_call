@@ -46,8 +46,8 @@ class LoginScreen extends StatelessWidget {
                 FirebaseAuth auth = FirebaseAuth.instance;
                 try {
                   await auth.createUserWithEmailAndPassword(
-                    email: email.text,
-                    password: pass.text,
+                    email: email.text.trim(),
+                    password: pass.text.trim(),
                   ).then((value) async { box.write('uid',value.user?.uid);
                   var devicePushTokenVoIP =
                   await FlutterCallkitIncoming.getDevicePushTokenVoIP();

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:demo_agora_ui_kit/voiceCall/voice_call_controller.dart';
+import 'package:demo_agora_ui_kit/vedio_call/vedio_call.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/android_params.dart';
@@ -48,6 +48,7 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home page'),
+        leading: const SizedBox(),
       ),
       body: FutureBuilder(
         future: FirebaseFirestore.instance.collection('users').get(),
@@ -69,7 +70,6 @@ class HomePageState extends State<HomePage> {
                             width: 100,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
                               children: [
                                 IconButton(
                                   icon: const Icon(
@@ -77,11 +77,28 @@ class HomePageState extends State<HomePage> {
                                     color: Colors.green,
                                   ),
                                   onPressed: () async {
+                                    Map<String, dynamic> data = {
+                                      "token": snapshot
+                                          .data!.docChanges[index].doc['token'],
+                                      'uid': snapshot
+                                          .data!.docChanges[index].doc['uid'],
+                                      "email": snapshot
+                                          .data!.docChanges[index].doc['email'],
+                                      'device': snapshot
+                                          .data!.docChanges[index].doc['device']
+                                    };
                                     startOutGoingCall(
-                                        snapshot.data!.docChanges[index].doc['token'],
-                                        snapshot.data!.docChanges[index].doc['uid'],
-                                        snapshot.data!.docChanges[index].doc['email'],
-                                        snapshot.data!.docChanges[index].doc['device'],true,snapshot.data!.docChanges[index] as Map<String, dynamic>);
+                                      snapshot
+                                          .data!.docChanges[index].doc['token'],
+                                      snapshot
+                                          .data!.docChanges[index].doc['uid'],
+                                      snapshot
+                                          .data!.docChanges[index].doc['email'],
+                                      snapshot.data!.docChanges[index]
+                                          .doc['device'],
+                                      true,
+                                      data,
+                                    );
                                   },
                                 ),
                                 // IconButton(
@@ -90,11 +107,22 @@ class HomePageState extends State<HomePage> {
                                 //     color: Colors.green,
                                 //   ),
                                 //   onPressed: () async {
+                                //     Map<String, dynamic> data = {
+                                //       "token": snapshot
+                                //           .data!.docChanges[index].doc['token'],
+                                //       'uid': snapshot
+                                //           .data!.docChanges[index].doc['uid'],
+                                //       "email": snapshot
+                                //           .data!.docChanges[index].doc['email'],
+                                //       'device': snapshot
+                                //           .data!.docChanges[index].doc['device'],
+                                //     };
                                 //     startOutGoingCall(
-                                //         snapshot.data!.docChanges[index].doc['token'],
-                                //         snapshot.data!.docChanges[index].doc['uid'],
-                                //         snapshot.data!.docChanges[index].doc['email'],
-                                //         snapshot.data!.docChanges[index].doc['device'],false);
+                                //       snapshot.data!.docChanges[index].doc['token'],
+                                //       snapshot.data!.docChanges[index].doc['uid'],
+                                //       snapshot.data!.docChanges[index].doc['email'],
+                                //       snapshot.data!.docChanges[index]
+                                //           .doc['device'], false, data,);
                                 //   },
                                 // ),
                               ],
@@ -128,106 +156,103 @@ class HomePageState extends State<HomePage> {
     }
   }
 
-
-
   Future<void> endCurrentCall() async {
     initCurrentCall();
     await FlutterCallkitIncoming.endCall(_currentUuid!);
   }
 
-  void startOutGoingCall(
-      String token, String userID, String name, String device,bool isVoiceCall,Map<String,dynamic> data)  {
+  void startOutGoingCall(String token, String userID, String name,
+      String device, bool isVoiceCall, Map<String, dynamic> data) {
     context.loaderOverlay.show();
-   final call= FirebaseFirestore.instance.collection('calls');
-   call.doc('${box.read('uid')}_$userID').get().then((value) {
-     if(value.exists){
-       call.doc('${box.read('uid')}_$userID').update({"isCall":true});
-     }else{
-       call.doc('${box.read('uid')}_$userID').set({"isCall":true});
-     }
-   });
-  Future.delayed(const Duration(seconds: 3),() async {
-    if (device == 'android') {
-    sendMessage(
-      token: token,
-      data: {
-        "senderName": name,
-        "avatar": '',
-        "UserId": userID,
-        "senderId": box.read('uid'),
-        "type": '1',
-        "channelName": '${box.read('uid')}_$userID',
-        "id": 0,
-        "sound": "default",
-      },
-    );
-  } else {
-    sendIosCallNotification(
-        deviceToken: token,
-        senderName: name,
-        channelName: '${box.read('uid')}_$userID',
-        avatar: "",
-        isVoiceCall: isVoiceCall == true ? 1.toString():0.toString(),
-        userId: userID,
-        senderId: box.read("uid"),
-        type: "is Calling you",
-        uuid: const Uuid().v4());
-  }
+    final call = FirebaseFirestore.instance.collection('calls');
+    call.doc('${box.read('uid')}_$userID').get().then((value) {
+      if (value.exists) {
+        call.doc('${box.read('uid')}_$userID').update({"isCall": true});
+      } else {
+        call.doc('${box.read('uid')}_$userID').set({"isCall": true});
+      }
+    });
+    Future.delayed(const Duration(seconds: 3), () async {
+      if (device == 'android') {
+        sendMessage(
+          token: token,
+          data: {
+            "senderName": name,
+            "avatar": '',
+            "UserId": userID,
+            "senderId": box.read('uid'),
+            "type": 'is Calling you',
+            "isVoiceCall": isVoiceCall == true ? 0.toString() : 1.toString(),
+            "channelName": '${box.read('uid')}_$userID',
+            "id": 0,
+            "sound": "default",
+          },
+        );
+      } else {
+        sendIosCallNotification(
+            deviceToken: token,
+            senderName: name,
+            channelName: '${box.read('uid')}_$userID',
+            avatar: "",
+            isVoiceCall: isVoiceCall == true ? 0.toString() : 1.toString(),
+            userId: userID,
+            senderId: box.read("uid"),
+            type: "is Calling you",
+            uuid: const Uuid().v4());
+      }
 
-  _currentUuid = _uuid.v4();
-  final params = CallKitParams(
-    id: _currentUuid,
-    nameCaller: 'akash kachhi',
-    handle: '0123456789',
-    type: 1,
-    extra: data,
-    android: const AndroidParams(
-      isCustomNotification: false,
-      isShowLogo: true,
-      ringtonePath: 'system_ringtone_default',
-      backgroundColor: '#0955fa',
-      backgroundUrl: 'assets/test.png',
-      actionColor: '#4CAF50',
-      textColor: '#ffffff',
-    ),
-    ios: const IOSParams(
-      iconName: 'CallKitLogo',
-      handleType: 'number',
-      supportsVideo: true,
-      maximumCallGroups: 2,
-      maximumCallsPerCallGroup: 1,
-      audioSessionMode: 'default',
-      audioSessionActive: true,
-      audioSessionPreferredSampleRate: 44100.0,
-      audioSessionPreferredIOBufferDuration: 0.005,
-      supportsDTMF: true,
-      supportsHolding: true,
-      supportsGrouping: false,
-      supportsUngrouping: false,
-      ringtonePath: 'system_ringtone_default',
-    ),
-  );
-  await FlutterCallkitIncoming.startCall(params);
-  VoiceCallController callController = Get.put(VoiceCallController());
-  callController.setupVoiceSDKEngine();
-  callController.join('${box.read('uid')}_$userID');
-    context.loaderOverlay.hide();
-    Get.to(() => CallScreen(chanelName: '${box.read('uid')}_$userID',data: params.extra,isSelfCut: true,));});
+      _currentUuid = _uuid.v4();
+      final params = CallKitParams(
+        id: _currentUuid,
+        nameCaller: 'akash kachhi',
+        handle: '0123456789',
+        type: isVoiceCall == true ? 0 : 1,
+        extra: data,
+        android: const AndroidParams(
+          isCustomNotification: true,
+          isShowLogo: true,
+          ringtonePath: 'system_ringtone_default',
+          backgroundColor: '#0955fa',
+          backgroundUrl: 'assets/test.png',
+          actionColor: '#4CAF50',
+          textColor: '#ffffff',
+        ),
+        ios: const IOSParams(
+          iconName: 'CallKitLogo',
+          handleType: 'number',
+          supportsVideo: true,
+          maximumCallGroups: 2,
+          maximumCallsPerCallGroup: 1,
+          audioSessionMode: 'default',
+          audioSessionActive: true,
+          audioSessionPreferredSampleRate: 44100.0,
+          audioSessionPreferredIOBufferDuration: 0.005,
+          supportsDTMF: true,
+          supportsHolding: true,
+          supportsGrouping: false,
+          supportsUngrouping: false,
+          ringtonePath: 'system_ringtone_default',
+        ),
+      );
+      await FlutterCallkitIncoming.startCall(params);
+      if (isVoiceCall == true) {
+        callController.join('${box.read('uid')}_$userID');
+        context.loaderOverlay.hide();
+        Get.to(() => CallScreen(
+              chanelName: '${box.read('uid')}_$userID',
+              data: params.extra,
+              isSelfCut: true,
+            ));
+      } else {
+        context.loaderOverlay.hide();
+        Get.to(() => VideoCallPage(channelName: '${box.read('uid')}_$userID'));
+      }
+    });
   }
-
-  // Future<void> activeCalls() async {
-  //   var calls = await FlutterCallkitIncoming.activeCalls();
-  // }
 
   Future<void> endAllCalls() async {
     await FlutterCallkitIncoming.endAllCalls();
   }
-
-  // Future<void> getDevicePushTokenVoIP() async {
-  //   var devicePushTokenVoIP =
-  //       await FlutterCallkitIncoming.getDevicePushTokenVoIP();
-  //   print(devicePushTokenVoIP);
-  // }
 
   Future<void> listenerEvent(void Function(CallEvent) callback) async {
     try {
@@ -242,35 +267,59 @@ class HomePageState extends State<HomePage> {
             // TODO: show screen calling in Flutter
             break;
           case Event.actionCallAccept:
-            VoiceCallController callController = Get.put(VoiceCallController());
-             callController.setupVoiceSDKEngine();
-             callController.join(event.body['extra']['channelName']);
-            Get.to(() =>  CallScreen(chanelName:event.body['extra']['channelName'] ,isSelfCut: false, data: {},));
+            // callController.setupVoiceSDKEngine();
+            if (event.body['type'] == 0) {
+              callController.join(event.body['extra']['channelName']);
+              Get.to(() => CallScreen(
+                    chanelName: event.body['extra']['channelName'],
+                    isSelfCut: false,
+                    data: {},
+                  ));
+            } else {
+              Get.to(() => VideoCallPage(
+                  channelName: event.body['extra']['channelName']));
+            }
+
             break;
           case Event.actionCallDecline:
             // TODO: declined an incoming call
-          print('====================> actionCallDecline <================');
-            final call= FirebaseFirestore.instance.collection('calls');
+
+            print('====================> action Call Decline <================');
+            final call = FirebaseFirestore.instance.collection('calls');
             call.doc(event.body['extra']['channelName']).get().then((value) {
-              if(value.exists){
-                call.doc(event.body['extra']['channelName']).update({"isCall":false});
+              if (value.exists) {
+                call
+                    .doc(event.body['extra']['channelName'])
+                    .update({"isCall": false});
               }
             });
-            endAllCalls();
+            callController.leave();
+            // endAllCalls();
             await requestHttp("ACTION_CALL_DECLINE_FROM_DART");
             break;
           case Event.actionCallEnded:
-            // print('action call ended ================== 00');
-            final call= FirebaseFirestore.instance.collection('calls');
+            print('====================> action Call Ended <================');
+            final call = FirebaseFirestore.instance.collection('calls');
             call.doc(event.body['extra']['channelName']).get().then((value) {
-              if(value.exists){
-                call.doc(event.body['extra']['channelName']).update({"isCall":false});
+              if (value.exists) {
+                call
+                    .doc(event.body['extra']['channelName'])
+                    .update({"isCall": false});
               }
             });
-            endAllCalls();
+            callController.leave();
             // TODO: ended an incoming/outgoing call
             break;
           case Event.actionCallTimeout:
+            print('hello how are ===============>');
+            final call = FirebaseFirestore.instance.collection('calls');
+            call.doc(event.body['extra']['channelName']).get().then((value) {
+              if (value.exists) {
+                call
+                    .doc(event.body['extra']['channelName'])
+                    .update({"isCall": false});
+              }
+            });
             // TODO: missed an incoming call
             break;
           case Event.actionCallCallback:
@@ -304,8 +353,6 @@ class HomePageState extends State<HomePage> {
     }
   }
 
-
-
   Future<void> requestHttp(content) async {
     get(Uri.parse(
         'https://webhook.site/2748bc41-8599-4093-b8ad-93fd328f1cd2?data=$content'));
@@ -316,7 +363,7 @@ class HomePageState extends State<HomePage> {
     setState(() {
       textEvents += '${event.toString()}\n';
 
-      print('========================> ${textEvents}');
+      print('========================> $textEvents');
     });
   }
 
@@ -363,14 +410,14 @@ Future sendMessage({
 
 Future sendIosCallNotification(
     {required String deviceToken,
-      required String senderName,
-      required String avatar,
-      required String userId,
-      required String channelName,
-      required String isVoiceCall,
-      required String senderId,
-      required String type,
-      required String uuid}) async {
+    required String senderName,
+    required String avatar,
+    required String userId,
+    required String channelName,
+    required String isVoiceCall,
+    required String senderId,
+    required String type,
+    required String uuid}) async {
   print('Hello sendIosCallNotification');
   Map data = {
     "device_token": deviceToken,
@@ -398,6 +445,7 @@ Future sendIosCallNotification(
   );
   print('Hello sendCallNotification com ${res.body}');
 }
+
 class Loading extends StatelessWidget {
   const Loading({super.key});
 
@@ -407,7 +455,11 @@ class Loading extends StatelessWidget {
       height: MediaQuery.sizeOf(context).height,
       width: MediaQuery.sizeOf(context).width,
       child: Center(
-        child: SizedBox(height:150,width:150,child: Lottie.asset("assets/files/call_Animation.json", repeat: true)),
+        child: SizedBox(
+            height: 150,
+            width: 150,
+            child:
+                Lottie.asset("assets/files/call_Animation.json", repeat: true)),
       ),
     );
   }

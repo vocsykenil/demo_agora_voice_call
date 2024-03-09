@@ -60,12 +60,13 @@ import 'package:get/get.dart';
 import 'calling_page.dart';
 
 class VoiceCallController extends GetxController {
+
   late CallKitParams callKitParams;
-  Timer? _timer;
   RxInt start = 0.obs;
+   Timer? timer ;
   String displayTime = '';
-  RxInt? _remoteUid; // uid of the remote user
-  bool _isJoined = false; // Indicates if the local user has joined the channel
+  RxInt? remoteUidForUser; // uid of the remote user
+  RxBool isJoined = false.obs; // Indicates if the local user has joined the channel
   late RtcEngine agoraEngine; // Agora engine instance
   Future<void> setupVoiceSDKEngine() async {
     // retrieve or request microphone permission
@@ -75,26 +76,26 @@ class VoiceCallController extends GetxController {
     agoraEngine = createAgoraRtcEngine();
     await agoraEngine.initialize(RtcEngineContext(
       appId: appID,
+      channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
     ));
 
-    // Register the event handler
     agoraEngine.registerEventHandler(
       RtcEngineEventHandler(
         onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
           showMessage(
               "Local user uid:${connection.localUid} joined the channel");
-          _isJoined = true;
+          isJoined.value = true;
         },
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           showMessage("Remote user uid:$remoteUid joined the channel");
           print('================ call connected ================');
-          startTimer();
-          _remoteUid?.value = remoteUid;
+          startCallTimer();
+          remoteUidForUser?.value = remoteUid;
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
           showMessage("Remote user uid:$remoteUid left the channel");
-          _remoteUid = null;
+          remoteUidForUser = null;
           leave();
         },
       ),
@@ -102,34 +103,29 @@ class VoiceCallController extends GetxController {
     agoraEngine.enableAudio();
   }
 
-
   Future<void> leave() async {
-    _isJoined = false;
-    _remoteUid = null;
-    FlutterCallkitIncoming.endAllCalls();
-    _timer?.cancel();
+    print('jay hanuman dada ===============>');
+    isJoined.value = false;
+    remoteUidForUser = null;
+    timer?.cancel();
     start.value = 0;
     agoraEngine.leaveChannel();
-    agoraEngine.release();
-      Get.back();
+
+    // agoraEngine.release();
+    FlutterCallkitIncoming.endAllCalls();
+    Get.back();
   }
 
-  // @override
-  // void dispose() {
-  //   // make sure the call was deleted
-  //   // and you use the callTime for the call logs.
-  //   super.dispose();
-  // }
 
   Widget status() {
     RxString statusText = ''.obs;
 
-    if (!_isJoined) {
+    if (!isJoined.value) {
       statusText.value = 'Join a channel';
-    } else if (_remoteUid == null)
+    } else if (remoteUidForUser == null)
       statusText.value = 'Waiting for a remote user to join...';
     else
-      statusText.value = 'Connected to remote user, uid:$_remoteUid';
+      statusText.value = 'Connected to remote user, uid:$remoteUidForUser';
 
     return Obx(() {
       return Text(
@@ -146,42 +142,33 @@ class VoiceCallController extends GetxController {
     String token = await generateToken(channelNAme);
     print('channel name =========> $channelNAme');
     print('token =========> $token');
-    await agoraEngine.joinChannel(
-      token: token,
-      channelId: channelNAme,
-      options: options,
-      uid: 0,
-    );
+      await agoraEngine.joinChannel(
+        token: token,
+        channelId: channelNAme,
+        options: options,
+        uid: 0,
+      );
   }
 
-  String intToTimeLeft(int value) {
+  String intToTimeLeft() {
     int h, m, s;
-    h = value ~/ 3600;
-    m = ((value - h * 3600)) ~/ 60;
-    s = value - (h * 3600) - (m * 60);
-    String hourLeft = h
-        .toString()
-        .length < 2 ? '0$h' : h.toString();
-    String minuteLeft = m
-        .toString()
-        .length < 2 ? '0$m' : m.toString();
-    String secondsLeft = s
-        .toString()
-        .length < 2 ? '0$s' : s.toString();
+    h = start.value ~/ 3600;
+    m = ((start.value - h * 3600)) ~/ 60;
+    s = start.value - (h * 3600) - (m * 60);
+    String hourLeft = h.toString().length < 2 ? '0$h' : h.toString();
+    String minuteLeft = m.toString().length < 2 ? '0$m' : m.toString();
+    String secondsLeft = s.toString().length < 2 ? '0$s' : s.toString();
     String result = "$hourLeft:$minuteLeft:$secondsLeft";
     return result;
   }
 
-  void startTimer() {
-    const oneSec = Duration(seconds: 1);
-    _timer = Timer.periodic(
-      oneSec,
-          (Timer timer) {
-        print('==================================> ${start}');
-        start++;
-      },
-    );
+  void startCallTimer() {
+   final startTime = DateTime.now();
+    timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final now = DateTime.now();
+      final duration = now.difference(startTime).inSeconds;
+      print('Call duration: $duration seconds');
+      start.value = duration;
+    });
   }
-
 }
-
