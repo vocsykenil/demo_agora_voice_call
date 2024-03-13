@@ -101,30 +101,30 @@ class HomePageState extends State<HomePage> {
                                     );
                                   },
                                 ),
-                                // IconButton(
-                                //   icon: const Icon(
-                                //     Icons.video_call,
-                                //     color: Colors.green,
-                                //   ),
-                                //   onPressed: () async {
-                                //     Map<String, dynamic> data = {
-                                //       "token": snapshot
-                                //           .data!.docChanges[index].doc['token'],
-                                //       'uid': snapshot
-                                //           .data!.docChanges[index].doc['uid'],
-                                //       "email": snapshot
-                                //           .data!.docChanges[index].doc['email'],
-                                //       'device': snapshot
-                                //           .data!.docChanges[index].doc['device'],
-                                //     };
-                                //     startOutGoingCall(
-                                //       snapshot.data!.docChanges[index].doc['token'],
-                                //       snapshot.data!.docChanges[index].doc['uid'],
-                                //       snapshot.data!.docChanges[index].doc['email'],
-                                //       snapshot.data!.docChanges[index]
-                                //           .doc['device'], false, data,);
-                                //   },
-                                // ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.video_call,
+                                    color: Colors.green,
+                                  ),
+                                  onPressed: () async {
+                                    Map<String, dynamic> data = {
+                                      "token": snapshot
+                                          .data!.docChanges[index].doc['token'],
+                                      'uid': snapshot
+                                          .data!.docChanges[index].doc['uid'],
+                                      "email": snapshot
+                                          .data!.docChanges[index].doc['email'],
+                                      'device': snapshot
+                                          .data!.docChanges[index].doc['device'],
+                                    };
+                                    startOutGoingCall(
+                                      snapshot.data!.docChanges[index].doc['token'],
+                                      snapshot.data!.docChanges[index].doc['uid'],
+                                      snapshot.data!.docChanges[index].doc['email'],
+                                      snapshot.data!.docChanges[index]
+                                          .doc['device'], false, data,);
+                                  },
+                                ),
                               ],
                             ),
                           ),
@@ -245,7 +245,7 @@ class HomePageState extends State<HomePage> {
             ));
       } else {
         context.loaderOverlay.hide();
-        Get.to(() => VideoCallPage(channelName: '${box.read('uid')}_$userID'));
+        Get.to(() => VideoCallPage(channelName: '${box.read('uid')}_$userID', data: params.extra,isSelfCut: true,));
       }
     });
   }
@@ -277,6 +277,8 @@ class HomePageState extends State<HomePage> {
                   ));
             } else {
               Get.to(() => VideoCallPage(
+                isSelfCut: false,
+                  data: {},
                   channelName: event.body['extra']['channelName']));
             }
 

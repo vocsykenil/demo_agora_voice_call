@@ -65,7 +65,7 @@ class VoiceCallController extends GetxController {
   RxInt start = 0.obs;
    Timer? timer ;
   String displayTime = '';
-  RxInt? remoteUidForUser; // uid of the remote user
+  RxInt remoteUidForUser = 0.obs; // uid of the remote user
   RxBool isJoined = false.obs; // Indicates if the local user has joined the channel
   late RtcEngine agoraEngine; // Agora engine instance
   Future<void> setupVoiceSDKEngine() async {
@@ -89,13 +89,14 @@ class VoiceCallController extends GetxController {
         onUserJoined: (RtcConnection connection, int remoteUid, int elapsed) {
           showMessage("Remote user uid:$remoteUid joined the channel");
           print('================ call connected ================');
+          print('remoteUid ================ $remoteUid ================');
           startCallTimer();
-          remoteUidForUser?.value = remoteUid;
+          remoteUidForUser.value = remoteUid;
         },
         onUserOffline: (RtcConnection connection, int remoteUid,
             UserOfflineReasonType reason) {
           showMessage("Remote user uid:$remoteUid left the channel");
-          remoteUidForUser = null;
+          remoteUidForUser.value = 0;
           leave();
         },
       ),
@@ -106,10 +107,10 @@ class VoiceCallController extends GetxController {
   Future<void> leave() async {
     print('jay hanuman dada ===============>');
     isJoined.value = false;
-    remoteUidForUser = null;
+    remoteUidForUser.value = 0;
     timer?.cancel();
     start.value = 0;
-    agoraEngine.leaveChannel();
+  await  agoraEngine.leaveChannel();
 
     // agoraEngine.release();
     FlutterCallkitIncoming.endAllCalls();
