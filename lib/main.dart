@@ -155,15 +155,14 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  late final Uuid _uuid;
+  late final Uuid uuid;
   String? currentUuid;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _uuid = const Uuid();
-
+    uuid = const Uuid();
     checkAndNavigationCallingPage();
   }
 
@@ -171,8 +170,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     var currentCall = await getCurrentCall();
     print('current call ======> $currentCall');
     if (currentCall != null) {
+      callController.join(currentCall['extra']['channelName']);
+
       if (currentCall['extra']['isVoiceCall'] == '0') {
-        callController.join(currentCall['extra']['channelName']);
         Get.to(() => CallScreen(
               chanelName: currentCall['extra']['channelName'],
               isSelfCut: false,
@@ -254,8 +254,8 @@ class BackgroundListener {
             break;
           case Event.actionCallAccept:
           // callController.setupVoiceSDKEngine();
+            callController.join(event.body['extra']['channelName']);
             if (event.body['type'] == 0) {
-              callController.join(event.body['extra']['channelName']);
               Get.to(() => CallScreen(
                 chanelName: event.body['extra']['channelName'],
                 isSelfCut: false,
@@ -267,7 +267,6 @@ class BackgroundListener {
                   data: {},
                   channelName: event.body['extra']['channelName']));
             }
-
             break;
           case Event.actionCallDecline:
           // TODO: declined an incoming call

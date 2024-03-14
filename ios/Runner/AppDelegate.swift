@@ -40,7 +40,9 @@ import flutter_callkit_incoming
         guard let isVideo = userActivity.isVideo else {
             return false
         }
+
         let objData = handleObj.getDecryptHandle()
+         print("call data 00 =========> \(objData)")
         let nameCaller = objData["nameCaller"] as? String ?? ""
         let handle = objData["handle"] as? String ?? ""
         let data = flutter_callkit_incoming.Data(id: UUID().uuidString, nameCaller: nameCaller, handle: handle, type: isVideo ? 1 : 0)
@@ -73,7 +75,7 @@ import flutter_callkit_incoming
         let id = payload.dictionaryPayload["id"] as? String ?? ""
         let nameCaller = payload.dictionaryPayload["nameCaller"] as? String ?? ""
         let handle = payload.dictionaryPayload["handle"] as? String ?? ""
-        let isVideo = payload.dictionaryPayload["isVideo"] as? Bool ?? false
+        let isVideo = payload.dictionaryPayload["isVoiceCall"] as? String ?? ""
         let extra = payload.dictionaryPayload["extra"]  as? [String: Any]
         
         let userId = extra?["UserId"] as? String ?? ""
@@ -83,8 +85,8 @@ import flutter_callkit_incoming
             print("extra perameter userId \(userId)")
             print("extra perameter senderId \(senderId)")
         
-        let data = flutter_callkit_incoming.Data(id: id, nameCaller: nameCaller, handle: handle, type: isVideo ? 1 : 0)
-        data.extra = ["user": "abc@123","UserId":userId,"senderId":senderId,"channelName":channelName]
+        let data = flutter_callkit_incoming.Data(id: id, nameCaller: nameCaller, handle: handle, type: isVideo == "0" ? 0 : 1)
+        data.extra = ["user": "abc@123","UserId":userId,"senderId":senderId,"channelName":channelName,"isVoiceCall":isVideo]
         
         print("Hello sub \(type)")
         if(type == "is Calling you"){

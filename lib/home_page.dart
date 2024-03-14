@@ -82,8 +82,8 @@ class HomePageState extends State<HomePage> {
                                           .data!.docChanges[index].doc['token'],
                                       'uid': snapshot
                                           .data!.docChanges[index].doc['uid'],
-                                      "email": snapshot
-                                          .data!.docChanges[index].doc['email'],
+                                      "email":box.read('uid') == snapshot.data!.docChanges[index].doc['uid']?  snapshot
+                                          .data!.docChanges[index].doc['email']:"unknown",
                                       'device': snapshot
                                           .data!.docChanges[index].doc['device']
                                     };
@@ -92,8 +92,8 @@ class HomePageState extends State<HomePage> {
                                           .data!.docChanges[index].doc['token'],
                                       snapshot
                                           .data!.docChanges[index].doc['uid'],
-                                      snapshot
-                                          .data!.docChanges[index].doc['email'],
+                                      box.read('uid') == snapshot.data!.docChanges[index].doc['uid']?  snapshot
+                                        .data!.docChanges[index].doc['email']:"unknown",
                                       snapshot.data!.docChanges[index]
                                           .doc['device'],
                                       true,
@@ -112,15 +112,16 @@ class HomePageState extends State<HomePage> {
                                           .data!.docChanges[index].doc['token'],
                                       'uid': snapshot
                                           .data!.docChanges[index].doc['uid'],
-                                      "email": snapshot
-                                          .data!.docChanges[index].doc['email'],
+                                      "email":box.read('uid') == snapshot.data!.docChanges[index].doc['uid']?  snapshot
+                                          .data!.docChanges[index].doc['email']:"unknown",
                                       'device': snapshot
                                           .data!.docChanges[index].doc['device'],
                                     };
                                     startOutGoingCall(
                                       snapshot.data!.docChanges[index].doc['token'],
                                       snapshot.data!.docChanges[index].doc['uid'],
-                                      snapshot.data!.docChanges[index].doc['email'],
+                                      box.read('uid') == snapshot.data!.docChanges[index].doc['uid']?  snapshot
+                                          .data!.docChanges[index].doc['email']:"unknown",
                                       snapshot.data!.docChanges[index]
                                           .doc['device'], false, data,);
                                   },
@@ -204,7 +205,7 @@ class HomePageState extends State<HomePage> {
       _currentUuid = _uuid.v4();
       final params = CallKitParams(
         id: _currentUuid,
-        nameCaller: 'akash kachhi',
+        nameCaller: name,
         handle: '0123456789',
         type: isVoiceCall == true ? 0 : 1,
         extra: data,
@@ -235,8 +236,9 @@ class HomePageState extends State<HomePage> {
         ),
       );
       await FlutterCallkitIncoming.startCall(params);
+      callController.join('${box.read('uid')}_$userID');
       if (isVoiceCall == true) {
-        callController.join('${box.read('uid')}_$userID');
+
         context.loaderOverlay.hide();
         Get.to(() => CallScreen(
               chanelName: '${box.read('uid')}_$userID',
@@ -268,8 +270,9 @@ class HomePageState extends State<HomePage> {
             break;
           case Event.actionCallAccept:
             // callController.setupVoiceSDKEngine();
+            callController.join(event.body['extra']['channelName']);
             if (event.body['type'] == 0) {
-              callController.join(event.body['extra']['channelName']);
+              // callController.join(]);
               Get.to(() => CallScreen(
                     chanelName: event.body['extra']['channelName'],
                     isSelfCut: false,

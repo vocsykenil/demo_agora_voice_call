@@ -5,7 +5,6 @@ import 'package:agora_uikit/agora_uikit.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:demo_agora_ui_kit/main.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:http/http.dart' as https;
@@ -42,7 +41,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
 
   @override
   void initState() {
-
+print("callController.remoteUidForUser init =========> ${callController.remoteUidForUser.value }");
     isCall = true.obs;
     FirebaseFirestore.instance
         .collection('calls')
@@ -75,21 +74,21 @@ class _VideoCallPageState extends State<VideoCallPage> {
       // });
     });
   }
+
   Future<void> initCall() async {
     await [Permission.microphone, Permission.camera].request();
     await callController.agoraEngine.setClientRole(
         role: ClientRoleType.clientRoleBroadcaster);
     await callController.agoraEngine.enableVideo();
     await callController.agoraEngine.startPreview();
-    String token = await generateToken(widget.channelName);
-    await callController.agoraEngine.joinChannel(
-      token: token,
-      channelId: widget.channelName,
-      uid: 0,
-      options: const ChannelMediaOptions(),
-    );
+    // String token = await generateToken(widget.channelName);
+    // await callController.agoraEngine.joinChannel(
+    //   token: token,
+    //   channelId: widget.channelName,
+    //   uid: 0,
+    //   options: const ChannelMediaOptions(),
+    // );
   }
-
   // Future<void> initAgora() async {
   //   // retrieve permissions
   //
@@ -227,7 +226,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
                               "avatar": '',
                               "UserId": widget.data?['uid'],
                               "senderId": box.read('uid'),
-                              "isVoiceCall":"0",
+                              "isVoiceCall":1.toString(),
                               "type": 'Cut',
                               "channelName": '${box.read('uid')}_${widget
                                   .data?['uid']}',
@@ -242,7 +241,7 @@ class _VideoCallPageState extends State<VideoCallPage> {
                               channelName: '${box.read('uid')}_${widget
                                   .data?['uid']}',
                               avatar: "",
-                              isVoiceCall: '0',
+                              isVoiceCall: 1.toString(),
                               userId: widget.data?['uid'],
                               senderId: box.read("uid"),
                               type: "Cut",
@@ -293,36 +292,33 @@ class _VideoCallPageState extends State<VideoCallPage> {
     callController.agoraEngine.switchCamera();
   }
 
-  Future<void> _onCallEnd(BuildContext context) async {
-    stopwatch.stop();
-    await callController.agoraEngine.leaveChannel();
-    await FlutterCallkitIncoming.endAllCalls();
-    Navigator.pop(context);
-  }
+  // Future<void> _onCallEnd(BuildContext context) async {
+  //   stopwatch.stop();
+  //   await callController.agoraEngine.leaveChannel();
+  //   await FlutterCallkitIncoming.endAllCalls();
+  //   Navigator.pop(context);
+  // }
 
   // Display remote user's video
   Widget _remoteVideo() {
-    return StreamBuilder<int>(
-        stream: callController.remoteUidForUser.stream,
-        builder: (context, snapshot) {
-          print('callController.remoteUidForUser =========> ${snapshot.data}');
-          if (snapshot.hasData && snapshot.data != 0) {
-            return AgoraVideoView(
-              controller: VideoViewController.remote(
-                rtcEngine: callController.agoraEngine,
-                canvas:  VideoCanvas(
-                    uid:snapshot.data),
-                connection: RtcConnection(channelId: widget.channelName),
-              ),
-            );
-          } else {
-            return const Text(
-              'Please wait for remote user to join',
-              textAlign: TextAlign.center,
-            );
-          }
-        }
-    );
+    return Obx(() {
+      callController.remoteUidForUser.stream;
+      if (callController.remoteUidForUser.value != 0) {
+        return AgoraVideoView(
+          controller: VideoViewController.remote(
+            rtcEngine: callController.agoraEngine,
+            canvas:  VideoCanvas(
+                uid:callController.remoteUidForUser.value),
+            connection: RtcConnection(channelId: widget.channelName),
+          ),
+        );
+      } else {
+        return const Text(
+          'Please wait for remote user to join',
+          textAlign: TextAlign.center,
+        );
+      }
+    });
   }
 }
 
