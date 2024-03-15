@@ -15,7 +15,8 @@ import flutter_callkit_incoming
     ) -> Bool {
         GeneratedPluginRegistrant.register(with: self)
         
-        //Setup VOIP
+  
+
         let mainQueue = DispatchQueue.main
         let voipRegistry: PKPushRegistry = PKPushRegistry(queue: mainQueue)
         voipRegistry.delegate = self
@@ -75,18 +76,21 @@ import flutter_callkit_incoming
         let id = payload.dictionaryPayload["id"] as? String ?? ""
         let nameCaller = payload.dictionaryPayload["nameCaller"] as? String ?? ""
         let handle = payload.dictionaryPayload["handle"] as? String ?? ""
-        let isVideo = payload.dictionaryPayload["isVoiceCall"] as? String ?? ""
+       
         let extra = payload.dictionaryPayload["extra"]  as? [String: Any]
         
+        
+        let isVideo = extra?["isVoiceCall"] as? String ?? ""
         let userId = extra?["UserId"] as? String ?? ""
         let senderId = extra?["senderId"] as? String ?? ""
         let channelName = extra?["channelName"] as? String ?? ""
         let type = extra?["type"] as? String ?? ""
+        print("is Vedio ======> \(isVideo)");
             print("extra perameter userId \(userId)")
             print("extra perameter senderId \(senderId)")
         
         let data = flutter_callkit_incoming.Data(id: id, nameCaller: nameCaller, handle: handle, type: isVideo == "0" ? 0 : 1)
-        data.extra = ["user": "abc@123","UserId":userId,"senderId":senderId,"channelName":channelName,"isVoiceCall":isVideo]
+        data.extra = ["user": "abc@123","UserId":userId,"senderId":senderId,"channelName":channelName,"isVoiceCall":isVideo == "0" ? "0" : "1"]
         
         print("Hello sub \(type)")
         if(type == "is Calling you"){
@@ -222,3 +226,4 @@ import flutter_callkit_incoming
     
     
 }
+
